@@ -140,12 +140,12 @@ public class Layer
 	/// Uses the numerically stable version by subtracting the max value.
 	/// </summary>
 	void Softmax()
-	{
+	{		
 		double max = this.Nodes.Max( n => n.RawValue );
 
 		this.Nodes.ForEach( n => n.Value = Math.Exp( n.RawValue - max ) );
 
-		double sum = this.Nodes.Sum( n => n.Value );
+		double sum = this.Nodes.Sum( n => n.Value );		
 
 		this.Nodes.ForEach( n => n.Value /= sum );
 	}
@@ -162,7 +162,10 @@ public class Layer
 	{
 		if( this.IsOutput )
 		{
-			this.Error = this.Nodes.Select( ( n, i ) => n.Back( output[ i ] ) ).Sum();
+			//this.Error = this.Nodes.Select( ( n, i ) => n.Back( output[ i ] ) ).Sum();
+			double error = 0;
+			for( int i = 0; i < this.Nodes.Count; i++ ) error += this.Nodes[ i ].Back( output[ i ] );
+			this.Error = error;
 
 			this.Source!.Back( output );
 		}

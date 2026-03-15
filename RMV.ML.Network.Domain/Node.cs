@@ -138,7 +138,10 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	public void Forward()
 	{
-		this.RawValue = this.In.Sum( e => e.WeightedSourceValue ) + this.Bias;
+		//this.RawValue = this.In.Sum( e => e.WeightedSourceValue ) + this.Bias;
+		double raw = this.Bias;
+		for( int i = 0; i < this.In.Count; i++ ) raw += this.In[ i ].WeightedSourceValue;
+		this.RawValue = raw;
 
 		this.Value = this.activation.Function( this.RawValue );
 
@@ -172,7 +175,10 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	public void Back()
    {
-      this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
+		//this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
+		double errorSum = 0;
+      for( int i = 0; i < this.Out.Count; i++ ) errorSum += this.Out[ i ].WeightedTargetError;
+      this.Error = errorSum * this.derivative;
 
       this.sum += this.Error;
 

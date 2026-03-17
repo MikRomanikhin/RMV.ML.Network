@@ -31,7 +31,11 @@ public static class Tools
 		return Math.Sqrt( -2.0 * Math.Log( u1 ) ) * Math.Cos( 2.0 * Math.PI * u2 );
 	}
 
-	
+	/// <summary>
+	/// Generates a random array of integers from 0 to max-1
+	/// </summary>
+	/// <param name="max">The maximum value (exclusive) for the random integers.</param>	
+	public static int[] BuildRandomPath( int max ) => [ .. Enumerable.Range( 0, max ).OrderBy( _ => Random.Shared.Next() ) ];
 
 	public static float Percent( int data, int total ) => ((float)data / total) * 100f;
 	

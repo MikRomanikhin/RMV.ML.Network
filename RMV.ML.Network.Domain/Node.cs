@@ -11,9 +11,11 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 {
 
 	#region State --------------------------------------------------------------
+		
+	double Bias { get; set; } // The value added to the weighted sum before applying the activation function.
 
 	double sum = 0; // bias, error;
-	double derivative, Delta; // for momentum
+	double derivative, delta; // for momentum
 
 	readonly IActivation activation = activation ?? new Relu();
 
@@ -40,12 +42,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// The raw weighted sum before activation (used by Softmax output layer)
 	/// </summary>
-	public double RawValue { get; set; } = 0;
-
-	/// <summary>
-	/// The bias value added to the weighted sum of inputs before applying the activation function.
-	/// </summary>
-	double Bias { get; set; } = 0;   	
+	public double RawValue { get; set; } = 0;	
 
 	/// <summary>
 	/// Learning Rate
@@ -91,7 +88,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// He initialization (optimal for ReLU, prevents dying neurons)
 	/// </summary>
-	public void Initialize()
+	public void HeInitialize()
 	{
 		if( this.In.Count == 0 ) return;
 
@@ -137,11 +134,8 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// Values are propagated to this neuron via source synapses.
 	/// </summary>
 	public void Forward()
-	{
-		//this.RawValue = this.In.Sum( e => e.WeightedSourceValue ) + this.Bias;
-		double raw = this.Bias;
-		for( int i = 0; i < this.In.Count; i++ ) raw += this.In[ i ].WeightedSourceValue;
-		this.RawValue = raw;
+	{		
+		this.RawValue = this.Bias + this.In.Sum( edge => edge.WeightedSourceValue );
 
 		this.Value = this.activation.Function( this.RawValue );
 
@@ -175,11 +169,8 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	public void Back()
    {
-		//this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
-		double errorSum = 0;
-      for( int i = 0; i < this.Out.Count; i++ ) errorSum += this.Out[ i ].WeightedTargetError;
-      this.Error = errorSum * this.derivative;
-
+		this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
+	
       this.sum += this.Error;
 
       this.In.ForEach( edge => edge.Learn() );
@@ -199,8 +190,8 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 
 		double gradient = this.sum / batchSize;
 
-		this.Delta = gradient * this.Rate + this.Delta * this.Momentum;
-		this.Bias += this.Delta;
+		this.delta = gradient * this.Rate + this.delta * this.Momentum;
+		this.Bias += this.delta;
 
 		this.sum = 0;
 	}

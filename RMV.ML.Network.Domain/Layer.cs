@@ -25,23 +25,27 @@ public class Layer
    /// <summary>
    /// The Layer fed by this Layer.
    /// </summary>
-   public Layer? Target { get; private set; }   
-
-   public bool IsInput => this.layerType == LayerType.Input;
-   public bool IsHidden => this.layerType == LayerType.Hidden;
-   public bool IsOutput => this.layerType == LayerType.Output;
+   public Layer? Target { get; private set; }  
 
    /// <summary>
    /// Output Layer Error
    /// </summary>
-   public double Error { get; private set; }	
+   public double Error { get; private set; }
 
-	readonly LayerType layerType = LayerType.Unknown;	
+	/// <summary>
+	/// Helpers to identify the Layer type
+	/// </summary>
+	bool IsInput => this.layerType == LayerType.Input;
+	bool IsHidden => this.layerType == LayerType.Hidden;
+	bool IsOutput => this.layerType == LayerType.Output;
 
 	#endregion
 
 
 	#region Constructor --------------------------------------------------------
+
+	readonly LayerType layerType = LayerType.Unknown;
+	readonly IActivation? activation;
 
 	/// <summary>
 	/// Constructs a new Layer.
@@ -49,13 +53,15 @@ public class Layer
 	/// <param name="nodes">number of neurons in this layer</param>
 	/// <param name="type">layer type</param>
 	/// <param name="settings">application settings</param>
-	/// <param name="source">previous layer</param>
-	/// <param name="activation">activation function</param>
-	public Layer( int nodes, LayerType type, AppSettings settings, Layer? source = null, IActivation? activation = null )
-	{      
+	/// <param name="source">previous layer</param>	
+	public Layer( int nodes, LayerType type, AppSettings settings, Layer? source = null )
+	{
 		this.layerType = type;
 
-		this.Nodes = [ .. Enumerable.Range( 0, nodes ).Select( i => new Node( i, settings, activation ) ) ];		
+		if( this.IsHidden ) this.activation = new Relu();
+		if( this.IsOutput ) this.activation = new Identity();		
+
+		this.Nodes = [ .. Enumerable.Range( 0, nodes ).Select( i => new Node( i, settings, activation ) ) ];
 
 		if( !this.IsInput )
 		{
@@ -63,77 +69,50 @@ public class Layer
 			this.Source = source;
 			source.Target = this;
 		}
-	}	
-
-	#endregion
-
-
-	#region Connect ------------------------------------------------------------
-
-	/// <summary>
-	/// Recursively connects this to the next Layer
-	/// </summary>
-	public void Connect()
-   {
-      if( !this.IsOutput )
-      {
-         this.Nodes.ForEach( n => n.Connect( this.Target! ) );
-
-         this.Target!.Connect();
-      }
-   }
-
-   #endregion
-
-
-   #region Initialize ---------------------------------------------------------    
-
-   /// <summary>
-   /// Recoursive initial weights
-   /// </summary>
-   public void Initialize()
-   {
-      if( !this.IsInput )  this.Nodes.ForEach( n => n.Initialize() );      
-
-      if( !this.IsOutput ) this.Target!.Initialize();      
-   }
-
-	#endregion
-
-
-	#region FeedForward ------------------------------------------------
-
-	/// <summary>
-	/// Feed forward
-	/// </summary> 	
-	public void Forward( double[] input )
-	{
-		if( this.IsInput )
-		{
-			for( int i = 0; i < this.Nodes.Count; i++ ) this.Nodes[ i ].Value = input[ i ];
-
-			this.Target!.Forward( input );
-		}
-		else if( this.IsHidden )
-		{
-#if DEBUG
-			this.Nodes.ForEach( n => n.Forward() );
-#else
-	      Parallel.ForEach( this.Nodes, n => n.Forward() );
-#endif
-			this.Target!.Forward( input );
-		}
-		else if( this.IsOutput )
-		{
-#if DEBUG
-			this.Nodes.ForEach( n => n.Forward() );
-#else
-	       Parallel.ForEach( this.Nodes, n => n.Forward() );
-#endif
-			Softmax();
-		}
 	}
 
+	#endregion
+
+
+	#region Connect/Initialize -------------------------------------------------
+
+	/// <summary>
+	/// Iteratively connects this layer to the next one. 
+	/// </summary>
+	public void Connect() => this.Nodes.ForEach( n => n.Connect( this.Target! ) );	
+		  	
+
+	/// <summary>
+	/// Iteratively initialize weights
+	/// </summary>
+	public void Initialize() => this.Nodes.ForEach( n => n.HeInitialize() );
+
+	#endregion
+
+
+	#region FeedForward ------------------------------------------------	
+
+	/// <summary>	
+	/// Input layer feed forward  with the specified input pattern.
+	/// </summary>
+	/// <param name="input">The input pattern</param>
+	public void Forward( double[] input )
+	{
+		for( int i = 0; i < this.Nodes.Count; i++ ) this.Nodes[ i ].Value = input[ i ];
+	}
+
+	/// <summary>
+	/// Hidden and Output layer feed forward
+	/// </summary>
+	public void Forward()
+	{
+#if DEBUG
+		this.Nodes.ForEach( n => n.Forward() );
+#else
+		Parallel.ForEach( this.Nodes, n => n.Forward() );
+#endif
+		if( this.IsOutput ) Softmax();
+	}
 
 	/// <summary>
 	/// Applies the softmax function to the output layer nodes.
@@ -153,54 +132,47 @@ public class Layer
 	#endregion
 
 
-	#region Back Propagation -------------------------------------------
+	#region Back Propagation -------------------------------------------	
 
 	/// <summary>
-	/// Recursive backwards learning 
-	/// </summary>	
+	/// Output layer learning with the specified output pattern and error calculation.
+	/// </summary>
+	/// <param name="output">The output pattern</param>
 	public void Back( double[] output )
 	{
-		if( this.IsOutput )
-		{
-			//this.Error = this.Nodes.Select( ( n, i ) => n.Back( output[ i ] ) ).Sum();
-			double error = 0;
-			for( int i = 0; i < this.Nodes.Count; i++ ) error += this.Nodes[ i ].Back( output[ i ] );
-			this.Error = error;
+		this.Error = this.Nodes.Select( ( n, i ) => n.Back( output[ i ] ) ).Sum();
+	}
 
-			this.Source!.Back( output );
-		}
-		else if( this.IsHidden )
-		{
+	/// <summary>
+	/// Hidden layer learning with error calculation based on the target layer errors and weights.
+	/// </summary>
+	public void Back()
+	{
 #if DEBUG
-	      this.Nodes.ForEach( n => n.Back() );
+		this.Nodes.ForEach( n => n.Back() );
 #else
-			Parallel.ForEach( this.Nodes, n => n.Back() );
+		Parallel.ForEach( this.Nodes, n => n.Back() );
 #endif
-			this.Source!.Back( output );
-		}
 	}
 
 	#endregion
 
 
-	#region Update Weights -----------------------------------------------------
+	#region Update Weights -----------------------------------------------------	
 
 	/// <summary>
-	/// Recoursive update weights 
+	/// Update weights (non-recursive)
 	/// </summary>
 	public void Update( int batchSize )
 	{
-		if( !this.IsInput )
-		{
+	
 #if DEBUG
-			this.Nodes.ForEach( n => n.Update( batchSize ) );
+		this.Nodes.ForEach( n => n.Update( batchSize ) );
 #else
-			Parallel.ForEach( this.Nodes, n => n.Update( batchSize ) );
-#endif
-		}
-
-		if( !this.IsOutput ) this.Target!.Update( batchSize );
+		Parallel.ForEach( this.Nodes, n => n.Update( batchSize ) );
+#endif		
 	}
+
 	#endregion
 
 

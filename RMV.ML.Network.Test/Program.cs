@@ -10,13 +10,11 @@ namespace RMV.ML.Network.Test;
 /// Neural Network Test Application
 /// </summary>
 class Program
-{
-	//static Logger logger = LogManager.GetCurrentClassLogger();	
-
+{	
 	/// <summary>
 	/// Main entry point
 	/// </summary>	
-	static void Main()
+	static async Task Main()
 	{
 		var timer = new Stopwatch();
 		timer.Start();
@@ -28,15 +26,14 @@ class Program
 		var testSet = parser.Run( File.ReadAllLines( settings.Test ) );
 
 		var network = new Net( settings ) { Learning = LearningType.Batch };
-		network.OnReport += ( s, e ) => Console.WriteLine( e.Message + $" Time={timer.Elapsed:hh\\:mm\\:ss}" );
+		network.OnReport += ( s, e ) => Console.WriteLine( e.Message );
 		network.Connect();
 		network.Initialize();
 		
 		string message = $"Hidden:{settings.Hidden.Join()} Iterations:{settings.Iterations} Rate:{settings.Rate} Momentum:{settings.Momentum} Time:{timer.Elapsed.TotalSeconds:f2} sec";
-		//logger.Info( message );
-		Console.WriteLine( message );		
+		Console.WriteLine( message );  
 
-		network.Train( trainSet, testSet );
+		await network.TrainMiniBatch( trainSet, testSet, timer );
 		          
 		//File.WriteAllText( settings.Errors, errCsv.Join() );
 		Console.ReadLine();

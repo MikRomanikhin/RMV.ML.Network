@@ -55,6 +55,11 @@ public class AppSettings
 	public int Print { get; set; }
 
 	/// <summary>
+	/// Validation interval
+	/// </summary>
+	public int Validate { get; set; }
+
+	/// <summary>
 	/// Train data file path
 	/// </summary>
 	public required string Train { get; set; }

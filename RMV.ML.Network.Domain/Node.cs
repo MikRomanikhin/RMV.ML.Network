@@ -7,15 +7,12 @@ namespace RMV.ML.Network.Domain;
 /// <summary>
 /// Initializes a new Node with the specified ID, learning rate, activation function, and optional momentum. 
 /// </summary>   
-public class Node( int id, AppSettings settings, IActivation? activation = null )
+public class Node( int id, AppSettings settings, IActivation? activation = null ) 
 {
 
-	#region State --------------------------------------------------------------
-		
-	double Bias { get; set; } // The value added to the weighted sum before applying the activation function.
-
-	double sum = 0; // bias, error;
-	double derivative, delta; // for momentum
+	#region State --------------------------------------------------------------		
+	
+	double bias, derivative, delta, sum = 0; 
 
 	readonly IActivation activation = activation ?? new Relu();
 
@@ -96,7 +93,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 
 		this.In.ForEach( s => s.Weight = Tools.GetGaussian() * std );		
 
-		this.Bias = 0;
+		this.bias = 0;
 	}
 
 	/// <summary>
@@ -122,7 +119,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 			sum += s.Weight;
 		}
 
-		this.Bias = Tools.GetRandom() - sum * 0.5; // initialize bias with a random value adjusted by the sum of weights
+		this.bias = Tools.GetRandom() - sum * 0.5; // initialize bias with a random value adjusted by the sum of weights
 	}
 
 	#endregion
@@ -135,7 +132,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	public void Forward()
 	{		
-		this.RawValue = this.Bias + this.In.Sum( edge => edge.WeightedSourceValue );
+		this.RawValue = this.bias + this.In.Sum( edge => edge.WeightedSourceValue );
 
 		this.Value = this.activation.Function( this.RawValue );
 
@@ -191,7 +188,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 		double gradient = this.sum / batchSize;
 
 		this.delta = gradient * this.Rate + this.delta * this.Momentum;
-		this.Bias += this.delta;
+		this.bias += this.delta;
 
 		this.sum = 0;
 	}
@@ -205,7 +202,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
    {
       var sb = new StringBuilder();
 
-      sb.Append( $"ID={this.ID} error={this.Error} value={this.Value} bias={this.Bias} weights=[" );
+      sb.Append( $"ID={this.ID} error={this.Error} value={this.Value} bias={this.bias} weights=[" );
 
 		for( int i = 0; i < this.In.Count; i++ )
 		{
@@ -218,6 +215,6 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 		return sb.ToString();
    }
 
-   #endregion
+	#endregion
 
 }

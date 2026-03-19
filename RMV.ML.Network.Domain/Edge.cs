@@ -25,12 +25,8 @@ sealed class Edge( Node from, Node to )
 	/// <summary>
 	/// Calculates Delta weight update
 	/// </summary>
-	public void Learn()
-   {
-      double delta = to.Error * from.Value;
-
-      this.sum += delta;
-   }
+	public void Learn() => this.sum += from.Value * to.Error;
+   
 
    /// <summary>
    /// Weight adjustment

@@ -40,5 +40,21 @@ public static class Extender
 	/// </summary>      
 	public static string? Join<T>( this IEnumerable<T>? target, string separator = ", " ) =>
 		target is not null && target.Any() ? string.Join( separator, target ) : null;
+
+
+	/// <summary>
+	/// string.IsNullOrEmpty extention
+	/// </summary>
+	/// <param name="target">target string</param>
+	/// <returns>indicator</returns>
+	public static bool IsNullOrEmpty( this string target ) => string.IsNullOrEmpty( target );
+	
+
+	/// <summary>
+	/// string.IsNullOrWhiteSpace extention
+	/// </summary>
+	/// <param name="target">target string</param>
+	/// <returns>indicator</returns>
+	public static bool IsNullOrWhitespace( this string target ) => string.IsNullOrWhiteSpace( target );
 	
 }

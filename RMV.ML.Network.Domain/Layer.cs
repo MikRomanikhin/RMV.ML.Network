@@ -98,13 +98,17 @@ public class Layer
 	/// <param name="input">The input pattern</param>
 	public void Forward( double[] input )
 	{
+#if DEBUG
 		for( int i = 0; i < this.Nodes.Count; i++ ) this.Nodes[ i ].Value = input[ i ];
+#else
+		Parallel.For( 0, this.Nodes.Count, i => this.Nodes[ i ].Value = input[ i ] );
+#endif
 	}
 
 	/// <summary>
 	/// Hidden and Output layer feed forward
 	/// </summary>
-	public void Forward()
+	public void Forward() //=> this.Nodes.ForEach( n => n.Forward() );
 	{
 #if DEBUG
 		this.Nodes.ForEach( n => n.Forward() );
@@ -129,7 +133,7 @@ public class Layer
 		this.Nodes.ForEach( n => n.Value /= sum );
 	}
 
-	#endregion
+#endregion
 
 
 	#region Back Propagation -------------------------------------------	
@@ -146,7 +150,7 @@ public class Layer
 	/// <summary>
 	/// Hidden layer learning with error calculation based on the target layer errors and weights.
 	/// </summary>
-	public void Back()
+	public void Back() //=> this.Nodes.ForEach( n => n.Back() );
 	{
 #if DEBUG
 		this.Nodes.ForEach( n => n.Back() );
@@ -164,19 +168,41 @@ public class Layer
 	/// Update weights (non-recursive)
 	/// </summary>
 	public void Update( int batchSize )
-	{
-	
+	{	
 #if DEBUG
 		this.Nodes.ForEach( n => n.Update( batchSize ) );
 #else
 		Parallel.ForEach( this.Nodes, n => n.Update( batchSize ) );
-#endif		
+#endif
 	}
 
 	#endregion
 
 
-	#region ToString -----------------------------------------------------------
+	#region Misc ---------------------------------------------------------------
+
+	/// <summary>
+	/// Calculates the index of the output node with the highest value
+	/// </summary>	
+	public int GetMaxItemIndex()
+	{
+		int maxIndex = 0;
+		double maxValue = this.Nodes[ 0 ].Value;
+
+		for( int i = 1; i < this.Nodes.Count; i++ )
+		{
+			double value = this.Nodes[ i ].Value;
+
+			if( value > maxValue )
+			{
+				maxValue = value;
+				maxIndex = i;
+			}
+		}
+
+		return maxIndex;
+	}
+
 
 	public override string ToString()
    {
@@ -198,6 +224,6 @@ public class Layer
       return sb.ToString();
    }
 
-   #endregion
+	#endregion
 
 } 

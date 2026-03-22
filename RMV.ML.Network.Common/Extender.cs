@@ -1,5 +1,5 @@
 ﻿
-namespace RMV.ML.Network.Common;
+namespace RMV.ML.Network.Configuration;
 
 public static class Extender
 {

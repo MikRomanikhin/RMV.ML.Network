@@ -1,7 +1,4 @@
-﻿
-using RMV.ML.Network.Common;
-
-namespace RMV.ML.Network.Domain;
+﻿namespace RMV.ML.Network.Domain;
 
 /// <summary>
 /// Represents a collection of paired input and output data sets for machine learning or statistical analysis.
@@ -42,7 +39,24 @@ public class DataSet( List<double[]> source, List<double[]> target )
 
 		return new DataSet( source, target );
 	}
-	
+
+
+	/// <summary>
+	/// Produces a batch of random source and target data pairs and posts them 
+	/// </summary>
+	/// <param name="batchSize">The number of items to include in the batch.</param>
+	/// <param name="target">The target block to which the data pairs will be posted.</param>
+	//public void Produce( int batchSize, ITargetBlock<(double[], double[])> target )
+	//{		
+	//	for( int i = 0; i < batchSize; i++ )
+	//	{
+	//		int index = Random.Shared.Next( batchSize );
+	//		target.Post( (this.Source[ index ], this.Target[ index ]) );
+	//	}
+
+	//	target.Complete();
+	//}	
+
 
 	/// <summary>
 	/// Determines whether the maximum item index for the specified value equals the provided index.

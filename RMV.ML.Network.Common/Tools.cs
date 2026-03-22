@@ -1,4 +1,4 @@
-﻿namespace RMV.ML.Network.Common;
+﻿namespace RMV.ML.Network.Configuration;
 
 /// <summary>
 /// Contains frequently used math functions.

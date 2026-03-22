@@ -1,7 +1,7 @@
 ﻿//using NLog;
 using System.Diagnostics;
 
-using RMV.ML.Network.Common;
+using RMV.ML.Network.Configuration;
 using RMV.ML.Network.Domain;
 
 namespace RMV.ML.Network.Test;

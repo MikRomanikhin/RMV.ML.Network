@@ -1,7 +1,7 @@
 ﻿
 using Microsoft.Extensions.Configuration;
 
-namespace RMV.ML.Network.Common;
+namespace RMV.ML.Network.Configuration;
 
 /// <summary>
 /// Network configuration
@@ -57,7 +57,7 @@ public class AppSettings
 	/// <summary>
 	/// Validation interval
 	/// </summary>
-	public int Validate { get; set; }
+	public int Epoch { get; set; }
 
 	/// <summary>
 	/// Train data file path

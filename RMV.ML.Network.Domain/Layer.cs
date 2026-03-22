@@ -1,6 +1,6 @@
 using System.Text;
 
-using RMV.ML.Network.Common;
+using RMV.ML.Network.Configaration;
 
 namespace RMV.ML.Network.Domain;
 
@@ -71,6 +71,33 @@ public class Layer
 		}
 	}
 
+	public Layer()
+	{
+		this.Nodes = [];
+	}
+
+	//public Layer Clone()
+	//{
+	//	var clone = new Layer ;
+		
+	//	for( int i = 0; i < this.Nodes.Count; i++ )
+	//	{
+	//		var node = this.Nodes[ i ];
+	//		var cloneNode = clone.Nodes[ i ];
+	//		cloneNode.Value = node.Value;
+	//		cloneNode.RawValue = node.RawValue;
+	//		cloneNode.Error = node.Error;
+	//		for( int j = 0; j < node.In.Count; j++ )
+	//		{
+	//			var edge = node.In[ j ];
+	//			var cloneEdge = cloneNode.In[ j ];
+	//			cloneEdge.Weight = edge.Weight;
+	//			cloneEdge.DeltaWeight = edge.DeltaWeight;
+	//		}
+	//	}
+	//	return clone;
+	//}
+
 	#endregion
 
 
@@ -90,7 +117,7 @@ public class Layer
 	#endregion
 
 
-	#region FeedForward ------------------------------------------------	
+	#region Feed Forward -------------------------------------------------------	
 
 	/// <summary>	
 	/// Input layer feed forward  with the specified input pattern.
@@ -98,29 +125,28 @@ public class Layer
 	/// <param name="input">The input pattern</param>
 	public void Forward( double[] input )
 	{
-#if DEBUG
+//#if DEBUG
 		for( int i = 0; i < this.Nodes.Count; i++ ) this.Nodes[ i ].Value = input[ i ];
-#else
-		Parallel.For( 0, this.Nodes.Count, i => this.Nodes[ i ].Value = input[ i ] );
-#endif
+//#else
+//		Parallel.For( 0, this.Nodes.Count, i => this.Nodes[ i ].Value = input[ i ] );
+//#endif
 	}
 
 	/// <summary>
 	/// Hidden and Output layer feed forward
 	/// </summary>
-	public void Forward() //=> this.Nodes.ForEach( n => n.Forward() );
-	{
-#if DEBUG
-		this.Nodes.ForEach( n => n.Forward() );
-#else
-		Parallel.ForEach( this.Nodes, n => n.Forward() );
-#endif
-		if( this.IsOutput ) Softmax();
-	}
+	public void Forward() => this.Nodes.ForEach( n => n.Forward() );
+//	{
+//#if DEBUG
+//		this.Nodes.ForEach( n => n.Forward() );
+//#else
+//		Parallel.ForEach( this.Nodes, n => n.Forward() );
+//#endif
+//		if( this.IsOutput ) Softmax();
+//	}
 
 	/// <summary>
-	/// Applies the softmax function to the output layer nodes.
-	/// Uses the numerically stable version by subtracting the max value.
+	/// Applies the softmax function to the output layer nodes	
 	/// </summary>
 	void Softmax()
 	{		
@@ -136,7 +162,7 @@ public class Layer
 #endregion
 
 
-	#region Back Propagation -------------------------------------------	
+	#region Back Propagation ---------------------------------------------------	
 
 	/// <summary>
 	/// Output layer learning with the specified output pattern and error calculation.
@@ -144,20 +170,20 @@ public class Layer
 	/// <param name="output">The output pattern</param>
 	public void Back( double[] output )
 	{
-		this.Error = this.Nodes.Select( ( n, i ) => n.Back( output[ i ] ) ).Sum();
+		this.Error = this.Nodes.Select( ( n, i ) => n.Backward( output[ i ] ) ).Sum();
 	}
 
 	/// <summary>
 	/// Hidden layer learning with error calculation based on the target layer errors and weights.
 	/// </summary>
-	public void Back() //=> this.Nodes.ForEach( n => n.Back() );
-	{
-#if DEBUG
-		this.Nodes.ForEach( n => n.Back() );
-#else
-		Parallel.ForEach( this.Nodes, n => n.Back() );
-#endif
-	}
+	public void Back() => this.Nodes.ForEach( n => n.Backward() );
+//	{
+//#if DEBUG
+//		this.Nodes.ForEach( n => n.Back() );
+//#else
+//		Parallel.ForEach( this.Nodes, n => n.Back() );
+//#endif
+//	}
 
 	#endregion
 
@@ -165,7 +191,7 @@ public class Layer
 	#region Update Weights -----------------------------------------------------	
 
 	/// <summary>
-	/// Update weights (non-recursive)
+	/// Update weights 
 	/// </summary>
 	public void Update( int batchSize )
 	{	

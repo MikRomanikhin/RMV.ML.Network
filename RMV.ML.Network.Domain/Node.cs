@@ -1,6 +1,6 @@
 using System.Text;
 
-using RMV.ML.Network.Common;
+using RMV.ML.Network.Configuration;
 
 namespace RMV.ML.Network.Domain;
 
@@ -65,7 +65,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
    /// Connects this neuron to all neurons in the target Layer
    /// </summary>
    /// <param name="target">The Layer to which this neuron needs to be connected</param>
-   public void Connect( Layer target )
+   internal void Connect( BaseLayer target )
    {
       foreach( var node in target.Nodes )
       {
@@ -85,7 +85,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// He initialization (optimal for ReLU, prevents dying neurons)
 	/// </summary>
-	public void HeInitialize()
+	internal void HeInitialize()
 	{
 		if( this.In.Count == 0 ) return;
 
@@ -99,7 +99,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// Nguen-Widrow initialisation 
 	/// </summary>
-	public void NwInitialize()
+	internal void NwInitialize()
 	{
 		if( this.In.Count == 0 ) return;
 
@@ -130,7 +130,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// Values are propagated to this neuron via source synapses.
 	/// </summary>
-	public void Forward()
+	internal void Forward()
 	{		
 		this.RawValue = this.bias + this.In.Sum( edge => edge.WeightedSourceValue );
 
@@ -149,7 +149,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	/// <param name="target">desired output (1 for correct class, 0 otherwise)</param>
 	/// <returns>cross-entropy loss for this node</returns>
-	public double Back( double target )
+	internal double Backward( double target )
 	{		
 		this.Error = target - this.Value;  // gradient = ( t - o ) for softmax + cross-entropy
 
@@ -164,7 +164,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// Hidden Layer error
 	/// </summary>
-	public void Back()
+	internal void Backward()
    {
 		this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
 	

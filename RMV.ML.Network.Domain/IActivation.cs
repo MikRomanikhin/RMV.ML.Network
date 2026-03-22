@@ -198,33 +198,4 @@ public class Tanh : IActivation
 }
 
 #endregion
-
-
-   #region Softmax -------------------------------------------------------
-
-   //public class SoftMax
-   //{
-   //   public void Function( double[] x )
-   //   {
-   //      double sum = x.Sum( i => Math.Exp( i ) );
-
-   //      Array.ForEach( x, i => i = i / sum );
-   //   }
-
-   //   public double Derivative( double x )
-   //   {
-   //      return x * ( 1.0 - x );
-   //   }
-
-   //   public double Min
-   //   {
-   //      get { return 0; }
-   //   }
-
-   //   public double Max
-   //   {
-   //      get { return 1; }
-   //   }
-   //}
-
-   #endregion
+ 

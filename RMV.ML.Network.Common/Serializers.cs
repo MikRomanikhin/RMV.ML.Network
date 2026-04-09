@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace RMV.ML.Network.Configuration;
+namespace RMV.ML.Network.Common;
 
 /// <summary>
 /// XML and JSON Serialization extenders

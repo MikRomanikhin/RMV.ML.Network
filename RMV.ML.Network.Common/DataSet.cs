@@ -1,6 +1,6 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
 
-namespace RMV.ML.Network.Domain;
+namespace RMV.ML.Network.Common;
 
 /// <summary>
 /// Represents a collection of paired input and output data sets for machine learning or statistical analysis.
@@ -21,7 +21,6 @@ public class DataSet( List<double[]> source, List<double[]> target )
 	/// </summary>
 	public List<double[]> Target { get; set; } = target;
 
-
 	/// <summary>
 	/// Builds random batch of source data arrays from the collection.
 	/// </summary>
@@ -31,9 +30,10 @@ public class DataSet( List<double[]> source, List<double[]> target )
 		var source = new List<double[]>( batchSize );
 		var target = new List<double[]>( batchSize );
 
-		var indexes = Random.Shared.GetItems( Enumerable.Range( 0, this.Source.Count ).ToArray(), batchSize );
+		var indices = Enumerable.Range( 0, this.Source.Count ).ToArray();
+		Random.Shared.Shuffle( indices );
 
-		foreach( int index in indexes )
+		foreach( int index in indices.Take( batchSize ) )
 		{
 			source.Add( this.Source[ index ] );
 			target.Add( this.Target[ index ] );
@@ -42,40 +42,50 @@ public class DataSet( List<double[]> source, List<double[]> target )
 		return new DataSet( source, target );
 	}
 
-	public (Matrix<double>, Matrix<double>) GetRandomBatchM( int batchSize )
-	{
-		var source = new List<double[]>( batchSize );
-		var target = new List<double[]>( batchSize );
 
-		var indexes = Random.Shared.GetItems( Enumerable.Range( 0, this.Source.Count ).ToArray(), batchSize );
+	//public (Matrix<double>, Matrix<double>) GetRandomTrain( int batchSize )
+	//{		
+	//	var indices = Enumerable.Range( 0, this.Source.Count ).ToArray();
+	//	Random.Shared.Shuffle( indices );
 
-		foreach( int index in indexes )
+	//	// Eagerly materialize arrays to prevent deferred execution issues in MathNet
+	//	var trainIndices = indices.Take( batchSize ).ToArray();
+	//	var testIndices = indices.Skip( batchSize ).Take( batchSize ).ToArray(); // Use Skip to get different rows
+
+	//	var xBatchRows = trainIndices.Select( i => this.Source[ i ] ).ToArray();
+	//	var tBatchRows = testIndices.Select( i => this.Target[ i ] ).ToArray(); // NOTE: You are using Source here, not Target.
+
+	//	var xBatch = Matrix<double>.Build.DenseOfRowArrays( xBatchRows );
+	//	var tBatch = Matrix<double>.Build.DenseOfRowArrays( tBatchRows );
+
+	//	return (xBatch, tBatch);
+	//}
+
+	/// <summary>
+	/// Selects a random batch of source data arrays from the collection and returns them as a tuple of matrices.
+	/// </summary>	
+	public (Matrix<double>, Matrix<double>) GetRandomTrain( int batchSize )
+	{		
+		int inputSize = this.Source[ 0 ].Length;
+		int outputSize = this.Target[ 0 ].Length;
+
+		var indices = Enumerable.Range( 0, this.Source.Count ).ToArray();
+		Random.Shared.Shuffle( indices );
+
+		var xBatch = Matrix<double>.Build.Dense( batchSize, inputSize );
+		var tBatch = Matrix<double>.Build.Dense( batchSize, outputSize );
+
+		for( int row = 0; row < batchSize; row++ )
 		{
-			source.Add( this.Source[ index ] );
-			target.Add( this.Target[ index ] );
+			int index = indices[ row ];
+
+			xBatch.SetRow( row, this.Source[ index ] );
+			tBatch.SetRow( row, this.Target[ index ] );
 		}
 
-		var sourceMatrix = Matrix<double>.Build.DenseOfRows( source );
-		var targetMatrix = Matrix<double>.Build.DenseOfRows( target );
-
-		return (sourceMatrix, targetMatrix);
+		return (xBatch, tBatch);
 	}
-
-	//public (double[][], double[][]) GetRandomBatchM( int batchSize )
-	//{
-	//	var source = new List<double[]>( batchSize );
-	//	var target = new List<double[]>( batchSize );
-
-	//	var indexes = Random.Shared.GetItems( Enumerable.Range( 0, this.Source.Count ).ToArray(), batchSize );
-
-	//	foreach( int index in indexes )
-	//	{
-	//		source.Add( this.Source[ index ] );
-	//		target.Add( this.Target[ index ] );
-	//	}
-
-	//	return ([ .. source ], [ .. target ]);
-	//}
+	
 
 
 	/// <summary>

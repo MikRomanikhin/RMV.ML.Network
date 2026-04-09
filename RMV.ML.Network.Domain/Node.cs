@@ -1,6 +1,6 @@
 using System.Text;
 
-using RMV.ML.Network.Configuration;
+using RMV.ML.Network.Common;
 
 namespace RMV.ML.Network.Domain;
 
@@ -19,7 +19,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// In/Out Synapses
 	/// </summary>
-	readonly List<Edge> In = [], Out = [];
+	readonly List<Edge> InEdges = [], OutEdges = [];
 
 	#endregion
 
@@ -71,9 +71,9 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
       {
          var edge = new Edge( this, node );
 
-         this.Out.Add( edge );
+         this.OutEdges.Add( edge );
 
-         node.In.Add( edge );
+         node.InEdges.Add( edge );
       }
    }
 
@@ -83,15 +83,15 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	#region Initialise ---------------------------------------------------------
 
 	/// <summary>
-	/// He initialization (optimal for ReLU, prevents dying neurons)
+	/// Box-Mueller initialization (optimal for ReLU, prevents dying neurons)
 	/// </summary>
-	internal void HeInitialize()
+	internal void BmInitialize()
 	{
-		if( this.In.Count == 0 ) return;
+		if( this.InEdges.Count == 0 ) return;
 
-		double std = Math.Sqrt( 2.0 / this.In.Count );
+		double std = Math.Sqrt( 2.0 / this.InEdges.Count );
 
-		this.In.ForEach( s => s.Weight = Tools.GetGaussian() * std );		
+		this.InEdges.ForEach( s => s.Weight = Tools.GetGaussian() * std );		
 
 		this.bias = 0;
 	}
@@ -101,10 +101,10 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	internal void NwInitialize()
 	{
-		if( this.In.Count == 0 ) return;
+		if( this.InEdges.Count == 0 ) return;
 
 		double rms = 0d;
-		foreach( var s in this.In ) // initialize synapse weights with random values
+		foreach( var s in this.InEdges ) // initialize synapse weights with random values
 		{
 			s.Weight = Tools.GetRandom();
 			rms += s.Weight * s.Weight;
@@ -113,7 +113,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 		rms = Math.Sqrt( 1d / rms ); // calculate the root mean square of the weights
 
 		double sum = 0d;
-		foreach( var s in this.In ) // scale the weights by the factor of 2 * rms and calculate the sum of weights
+		foreach( var s in this.InEdges ) // scale the weights by the factor of 2 * rms and calculate the sum of weights
 		{
 			s.Weight *= 2d * rms;
 			sum += s.Weight;
@@ -132,7 +132,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	internal void Forward()
 	{		
-		this.RawValue = this.bias + this.In.Sum( edge => edge.WeightedSourceValue );
+		this.RawValue = this.bias + this.InEdges.Sum( edge => edge.WeightedSourceValue );
 
 		this.Value = this.activation.Function( this.RawValue );
 
@@ -155,7 +155,7 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 
 		this.sum += this.Error;  //  
 
-		this.In.ForEach( edge => edge.Learn() );		
+		this.InEdges.ForEach( edge => edge.Learn() );		
 
 		return -target * Math.Log( Math.Max( this.Value, 1e-15 ) );
 	}
@@ -166,11 +166,11 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// </summary>
 	internal void Backward()
    {
-		this.Error = this.Out.Sum( edge => edge.WeightedTargetError ) * this.derivative;
+		this.Error = this.OutEdges.Sum( edge => edge.WeightedTargetError ) * this.derivative;
 	
       this.sum += this.Error;
 
-      this.In.ForEach( edge => edge.Learn() );
+      this.InEdges.ForEach( edge => edge.Learn() );
    }
 
 	#endregion
@@ -181,9 +181,9 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 	/// <summary>
 	/// Weights and Bias update
 	/// </summary>
-	public void Update( int batchSize )
+	internal void Update( int batchSize )
 	{
-		this.In.ForEach( edge => edge.Update( batchSize ) );
+		this.InEdges.ForEach( edge => edge.Update( batchSize ) );
 
 		double gradient = this.sum / batchSize;
 
@@ -204,10 +204,10 @@ public class Node( int id, AppSettings settings, IActivation? activation = null 
 
       sb.Append( $"ID={this.ID} error={this.Error} value={this.Value} bias={this.bias} weights=[" );
 
-		for( int i = 0; i < this.In.Count; i++ )
+		for( int i = 0; i < this.InEdges.Count; i++ )
 		{
 			if( i > 0 ) sb.Append( ", " );
-			sb.Append( this.In[ i ] );
+			sb.Append( this.InEdges[ i ] );
 		}
 
 		sb.Append( ']' );

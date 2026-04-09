@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RMV.ML.Network.Domain;
+namespace RMV.ML.Network.Common;
 
 /// <summary>
 /// Network learning type
@@ -23,7 +23,7 @@ public enum  ActivationType
 [JsonConverter( typeof( JsonStringEnumConverter ) )]
 public enum Optimizer
 {
-	SGD, Momentum, Nesterov, Adam, AdaGrad, RMSprop
+	SGD, Momentum, Nesterov, Adam, AdaGrad, RmsProp
 }
 
 /// <summary>

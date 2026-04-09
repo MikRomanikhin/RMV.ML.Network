@@ -52,9 +52,11 @@
 	</Configurations>
 	<Files>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
-			<File RelativePath=".\ActivationModule.f90"/>
+			<File RelativePath=".\ActivationModule.f90">
+			</File>
 			<File RelativePath=".\NodeModule.f90">
 			</File>
+			<File RelativePath=".\ToolsModule.f90"/>
 		</Filter>
 	</Files>
 	<Globals/>

@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenchmarkSuite1", "Benchmar
 EndProject
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "RMV.ML.MNIST", "RMV.ML.MNIST\RMV.ML.MNIST.vfproj", "{DABC9075-F05C-B8EE-505E-47EA005E71A4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RMV.ML.MNIST.CS", "RMV.ML.MNIST.CS\RMV.ML.MNIST.CS.csproj", "{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{DABC9075-F05C-B8EE-505E-47EA005E71A4}.Release|x64.Build.0 = Release|x64
 		{DABC9075-F05C-B8EE-505E-47EA005E71A4}.Release|x86.ActiveCfg = Release|Win32
 		{DABC9075-F05C-B8EE-505E-47EA005E71A4}.Release|x86.Build.0 = Release|Win32
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|x64.Build.0 = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Debug|x86.Build.0 = Debug|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|x64.ActiveCfg = Release|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|x64.Build.0 = Release|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|x86.ActiveCfg = Release|Any CPU
+		{D001BC2F-DC8B-4564-AAA1-3E09282F98C7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -2,7 +2,7 @@
 
 using RMV.ML.Network.Common;
 
-namespace RMV.ML.Network.Domain;
+namespace RMV.ML.MNIST.CS;
 
 /// <summary>
 /// Network configuration

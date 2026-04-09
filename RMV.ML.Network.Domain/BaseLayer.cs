@@ -1,5 +1,4 @@
-﻿using RMV.ML.Network.Configuration;
-
+﻿
 namespace RMV.ML.Network.Domain;
 
 abstract class BaseLayer
@@ -62,7 +61,7 @@ abstract class BaseLayer
 	/// <summary>
 	/// Iteratively initialize weights
 	/// </summary>
-	internal void Initialize() => this.Nodes.ForEach( n => n.HeInitialize() );
+	internal void Initialize() => this.Nodes.ForEach( n => n.BmInitialize() );
 
 	#endregion
 

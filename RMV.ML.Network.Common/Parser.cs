@@ -1,110 +1,70 @@
-﻿
-namespace RMV.ML.Network.Common;
+﻿namespace RMV.ML.Network.Common;
 
-public class Parser
+/// <summary>
+/// Parses input data and maps output to binary vectors
+/// </summary>
+public class Parser( int outputs )
 {
-	public Parser( IActivation activation, int outputs )
-	{
-		this.activation = activation;
-		this.outputs = outputs;
-	}
-
-	IActivation activation;
-	int outputs;
-
-	#region reserved
-	/// <summary>
-	/// Extracts input and output data from string array
-	/// </summary>
-	/// <param name="lines">input data</param>
-	/// <param name="length"># of output neurons</param>
-	/// <returns>scaled Input and Output lists</returns>
-	//public (List<double[]>, List<double[]>) Run( string path, int length )
-	//{
-	//   var input = new List<double[]>();
-	//   var output = new List<double[]>();
-
-	//   var table = GetDataTable( path );         
-
-	//   var mapper = new Mapper { Activation = new Sigmoid() };
-
-	//   var tmp = table.AsEnumerable().Select( c => c[ 0 ] ).Cast<int>().ToList();
-
-	//   for( int i = 0; i < tmp.Count(); i++ )
-	//   {
-	//      output.Add( BinaryVector( tmp[ i ] ) );
-
-	//      var row = table.Rows[ i ].ItemArray.Select( r => double.Parse( r.ToString() ) ).ToList();            
-
-	//      row.RemoveAt( 0 );                 
-
-	//      input.Add( mapper.NormalizeZscore( row ).ToArray() );
-	//   }     
-
-	//   return (input, output);
-	//}
-
-
-	//static DataTable GetDataTable( string path, bool isFirstRowHeader = false )
-	//{
-	//   string header = isFirstRowHeader ? "Yes" : "No";
-
-	//   string sql = "SELECT * FROM [" + Path.GetFileName( path ) + "]";
-
-
-	//   using( var connection = new OleDbConnection( @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source="
-	//      + Path.GetDirectoryName( path ) + ";Extended Properties=\"Text;HDR=" + header + "\"" ) )
-	//   using( var command = new OleDbCommand( sql, connection ) )
-	//   using( var adapter = new OleDbDataAdapter( command ) )
-	//   {
-	//      var dataTable = new DataTable();
-
-	//      adapter.Fill( dataTable );
-
-	//      return dataTable;
-	//   }
-	//}
-	#endregion
-
 	/// <summary>
 	/// Builds Train and Test data
 	/// </summary>
-	/// <param name="value">input</param>            
-	public (List<double[]>, List<double[]>) Run( string[] lines )
+	/// <param name="value">input</param> 
+	public DataSet Run( string[] lines )
 	{
 		var input = new List<double[]>();
-		var output = new List<double[]>();
-
-		var mapper = new Mapper { Activation = activation };
+		var output = new List<double[]>();		
 
 		foreach( string line in lines )
 		{
-			var data = Array.ConvertAll( line.Split( ',' ), s => double.Parse( s ) );
+			var data = Array.ConvertAll( line.Split( ',' ), double.Parse ); //parse line to double array
 
 			var buffer = new double[ data.Length - 1 ];  //input data storage
 
 			Array.Copy( data, 1, buffer, 0, data.Length - 1 ); //populate buffer
 
-			input.Add( mapper.Normalize( buffer ).ToArray() );  //and add it to the input list
+			input.Add( [ .. Normalize( buffer ) ] );  //add it to the input list
 
 			output.Add( BinaryVector( ( int )data[ 0 ] ) ); //output list
 		}
 
-		return (input, output);
+		return new DataSet( input, output );
 	}
+	
+
+	/// <summary>
+	/// Normalizes input to [0, 1] range by dividing by a fixed scale (255 for image data).
+	/// </summary>	
+	static IEnumerable<double> Normalize( IEnumerable<double> data ) => data.Select( d => d / 255.0 );
+
+	/// <summary>
+	/// Normalizes input to have zero mean and unit variance
+	/// </summary>
+	/// <param name="data">The input data array.</param>
+	/// <returns>An enumerable of normalized values.</returns>
+	static IEnumerable<double> NormalizeM( double[] data )
+	{
+		double mean = data.Sum() / data.Length; // mean
+		double variance = data.Sum( d => ( d - mean ) * ( d - mean ) ) / data.Length; // variance
+		double stdDev = Math.Sqrt( variance ); // standard deviation
+
+		return data.Select( d => ( d - mean ) / stdDev ); // normalize
+	}
+
 
 	/// <summary>
 	/// Binary mapping for output
 	/// </summary>
 	/// <param name="value">target value</param>      
+	/// <param name="min">default value for non-target indices</param>
+	/// <param name="max">value for the target index</param>
 	/// <returns>corresponding vector</returns>
-	double[] BinaryVector( int value )
+	double[] BinaryVector( int value, double min = 0.0, double max = 1.0 )
 	{
-		var result = new double[ this.outputs ];
+		var result = new double[ outputs ];
+				
+		if( min != 0.0 )	Array.Fill( result, min ); // we only need to fill if min is not 0
 
-		Array.ForEach( result, r => r = this.activation.Min ); //default value
-
-		result[ value ] = this.activation.Max; //actual value
+		result[ value ] = max; // actual value
 
 		return result;
 	}			

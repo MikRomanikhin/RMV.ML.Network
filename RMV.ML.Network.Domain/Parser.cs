@@ -1,6 +1,6 @@
-﻿using RMV.ML.Network.Domain;
+﻿using RMV.ML.Network.Common;
 
-namespace RMV.ML.Network.Test;
+namespace RMV.ML.Network.Domain;
 
 /// <summary>
 /// Parses input data and maps output to binary vectors
@@ -31,6 +31,27 @@ public class Parser( int outputs )
 
 		return new DataSet( input, output );
 	}
+
+	//public (double[][], double[][]) RunM( string[] lines )
+	//{
+	//	var input = new List<double[]>();
+	//	var output = new List<double[]>();
+
+	//	foreach( string line in lines )
+	//	{
+	//		var data = Array.ConvertAll( line.Split( ',' ), double.Parse ); //parse line to double array
+
+	//		var buffer = new double[ data.Length - 1 ];  //input data storage
+
+	//		Array.Copy( data, 1, buffer, 0, data.Length - 1 ); //populate buffer
+
+	//		input.Add( [ .. Normalize( buffer ) ] );  //add it to the input list
+
+	//		output.Add( BinaryVector( ( int )data[ 0 ] ) ); //output list
+	//	}
+
+	//	return ([ .. input ], [ .. output ]);
+	//}
 
 	/// <summary>
 	/// Normalizes input to [0, 1] range by dividing by a fixed scale (255 for image data).

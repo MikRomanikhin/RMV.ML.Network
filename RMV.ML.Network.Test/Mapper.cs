@@ -35,8 +35,8 @@ public class Mapper( IActivation activation )
 	/// <summary>
 	/// Normalizes input to [0, 1] range by dividing by a fixed scale (255 for image data).
 	/// </summary>	
-	public static IEnumerable<double> Normalize( IEnumerable<double> data ) => data.Select( d => d / 255.0 );	
-	
+	public static IEnumerable<double> Normalize( IEnumerable<double> data ) => data.Select( d => d / 255.0 );
+
 
 	/// <summary>
 	/// Denormalizes data for display

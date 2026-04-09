@@ -1,7 +1,6 @@
-﻿//using NLog;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
-using RMV.ML.Network.Configuration;
+using RMV.ML.Network.Common;
 using RMV.ML.Network.Domain;
 
 namespace RMV.ML.Network.Test;
@@ -22,20 +21,35 @@ class Program
 		var settings = ConfigManager.GetRoot<AppSettings>() ?? throw new Exception( "Failed to load configuration" );					
 
 		var parser = new Parser( settings.Output );
-		var trainSet = parser.Run( File.ReadAllLines( settings.Train ) );
-		var testSet = parser.Run( File.ReadAllLines( settings.Test ) );
+		var trainSet = parser.Run( File.ReadAllLines( settings.TrainPath ) );
+		var testSet = parser.Run( File.ReadAllLines( settings.TestPath ) );
 
-		var network = new Net( settings ) { Learning = LearningType.Batch };
+		Console.WriteLine( $"Loaded data sets. Time:{timer.Elapsed.TotalSeconds:f2} sec" );
+
+		var network = new Net( settings, timer );
 		network.OnReport += ( s, e ) => Console.WriteLine( e.Message );
 		network.Connect();
 		network.Initialize();
 		
 		string message = $"Hidden:{settings.Hidden.Join()} Iterations:{settings.Iterations} Rate:{settings.Rate} Momentum:{settings.Momentum} Time:{timer.Elapsed.TotalSeconds:f2} sec";
-		Console.WriteLine( message );  
+		Console.WriteLine( message );
 
-		await network.TrainMiniBatch( trainSet, testSet, timer );
-		          
+		switch( settings.Learning )
+		{
+			case LearningType.Online:
+				await network.TrainOnline( trainSet, testSet );
+				break;
+			case LearningType.Batch:
+				await network.TrainBatch( trainSet, testSet	);
+				break;
+			case LearningType.MiniBatch:
+				await network.TrainMiniBatch( trainSet, testSet );
+				break;
+		}
+
 		//File.WriteAllText( settings.Errors, errCsv.Join() );
+		timer.Stop();
+		Console.WriteLine( "Training completed. Time={timer.Elapsed:hh\\:mm\\:ss}" );
 		Console.ReadLine();
 	}	
 	

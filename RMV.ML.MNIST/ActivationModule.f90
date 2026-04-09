@@ -5,4 +5,6 @@ module ActivationModule
       type(Node) :: node
       real :: value
    end type Activation
+   
+   
 end module ActivationModule

@@ -89,16 +89,16 @@ public class Relu : IActivation
 	/// Activation function.
 	/// </summary>
 	/// <param name="x">value to be activated</param>	
-	public double Function( double x ) => Math.Max( x, 0 );
+	public double Function( double x ) => Math.Max( x, 0d );
 
 	/// <summary>
 	/// Derivative of the Activation function.
 	/// </summary>
-	public double Derivative( double x ) => x > 0 ? 1 : 0;
+	public double Derivative( double x ) => x > 0 ? 1d : 0d;
 
-	public double Min => 0;
+	public double Min => 0d;
 
-	public double Max => 1;
+	public double Max => 1d;
 }
 
 #endregion
@@ -118,15 +118,14 @@ public class Sigmoid : IActivation
 	/// <param name="x">value to be activated</param>	
 	public double Function( double x ) => 1d / ( Math.Exp( -x ) + 1d );
 
-
 	/// <summary>
 	/// Derivative of the Activation function.
 	/// </summary>	
 	public double Derivative( double x ) => x * ( 1d - x );
 
-	public double Min => 0;
+	public double Min => 0d;
 
-	public double Max => 1;
+	public double Max => 1d;
 }
 
 #endregion

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace RMV.ML.Network.Configuration;
+namespace RMV.ML.Network.Common;
 
 /// <summary>
 /// Custom configuration section handler

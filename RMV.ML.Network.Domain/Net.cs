@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-using RMV.ML.Network.Configuration;
+using RMV.ML.Network.Common;
 
 namespace RMV.ML.Network.Domain;
 
@@ -17,8 +17,9 @@ public class Net
 	/// </summary>
 	/// <param name="activation">The activation function for the hidden layers</param>
 	/// <param name="settings">The application settings</param>
-	public Net( AppSettings settings )
+	public Net( AppSettings settings, Stopwatch timer )
 	{
+		this.timer = timer;
 		this.settings = settings;
 		this.InputLayer = new InputLayer( settings.Input, settings );
 		var lastLayer = InputLayer;
@@ -32,27 +33,12 @@ public class Net
 
 		this.OutputLayer = new OutputLayer( settings.Output, settings, lastLayer );
 	}
-	//public Net( AppSettings settings ) 
-	//{	
-	//	this.settings = settings;
-	//	this.InputLayer = new Layer( settings.Input, LayerType.Input, settings );      
-	//     var lastLayer = InputLayer;
-
-	//	foreach( int nodes in settings.Hidden )
-	//	{
-	//		var hiddenLayer = new Layer( nodes, LayerType.Hidden, settings, lastLayer );
-	//		this.HiddenLayers.Add( hiddenLayer );
-	//		lastLayer = hiddenLayer;
-	//	}		
-
-	//	this.OutputLayer = new Layer( settings.Output, LayerType.Output, settings, lastLayer );		
-	//}
 
 
 	readonly AppSettings settings;
+	readonly Stopwatch timer;
 	readonly BaseLayer InputLayer, OutputLayer; 
-   readonly List<BaseLayer> HiddenLayers = [];	
-	//double Error => this.OutputLayer.Error; // Current Error in the network
+   readonly List<BaseLayer> HiddenLayers = [];		
 
 	#endregion
 
@@ -99,7 +85,7 @@ public class Net
 	/// </summary>	
 	/// <param name="trainSet">Training data set</param>
 	/// <param name="testSet">Test data set</param>
-	public async Task TrainSgd( DataSet trainSet, DataSet testSet, Stopwatch timer )
+	public async Task TrainOnline( DataSet trainSet, DataSet testSet )
 	{
 		for( int epoch = 0; epoch < settings.Iterations; epoch++ )
 		{
@@ -107,14 +93,46 @@ public class Net
 
 			for( int i = 0; i < settings.Batch; i++ )
 			{
-				TrainingBatch( trainSet );
+				RunBatch( trainSet );
 
-				if( Learning == LearningType.Online ) Update( 1 );
+				Update( 1 );
+
+				batchError += ( ( OutputLayer )OutputLayer ).Error;
+			}			
+
+			double averageError = batchError / settings.Batch;
+
+			if( epoch % settings.Print != 0 ) // Don't test every epoch, just display error
+			{
+				await ReportAsync( $"Epoch={epoch}, Avg Error={averageError:f3} Time={timer.Elapsed:hh\\:mm\\:ss}" );
+				continue;
+			}
+
+			double accuracy = Testing( testSet );
+
+			await ReportAsync( $"Epoch={epoch}, Avg Error={averageError:f3} Time={timer.Elapsed:hh\\:mm\\:ss}  Accuracy={accuracy:f4}" );
+		}
+	}
+
+	/// <summary>
+	/// Trains the model using the specified training and test data sets over a series of epochs.
+	/// </summary>	
+	/// <param name="trainSet">Training data set</param>
+	/// <param name="testSet">Test data set</param>
+	public async Task TrainBatch( DataSet trainSet, DataSet testSet )
+	{
+		for( int epoch = 0; epoch < settings.Iterations; epoch++ )
+		{
+			double batchError = 0;
+
+			for( int i = 0; i < settings.Batch; i++ )
+			{
+				RunBatch( trainSet );				
 
 				batchError += ((OutputLayer)OutputLayer).Error;
 			}
 
-			if( Learning == LearningType.Batch ) Update( settings.Batch );
+			Update( settings.Batch );
 
 			double averageError = batchError / settings.Batch;
 
@@ -134,7 +152,7 @@ public class Net
 	/// Trains the Net with a random pattern from the specified dataset.
 	/// </summary>
 	/// <param name="data">The dataset to train on</param>
-	void TrainingBatch( DataSet data )
+	void RunBatch( DataSet data )
 	{
 		int index = Random.Shared.Next( data.Source.Count ); // random pattern index
 
@@ -150,9 +168,9 @@ public class Net
 	/// <param name="testSet">The data set used for validation testing at configured intervals</param>
 	/// <param name="timer">A stopwatch instance used to track and report elapsed training time</param>
 	/// <returns>A task that represents the asynchronous training operation</returns>
-	public async Task TrainMiniBatch( DataSet trainSet, DataSet testSet, Stopwatch timer )
+	public async Task TrainMiniBatch( DataSet trainSet, DataSet testSet )
 	{
-		for( int iteration = 0; iteration < settings.Iterations; iteration++ )
+		for( int iteration = 0; iteration <= settings.Iterations; iteration++ )
 		{
 			#region reserved
 			//var trainTask = Task.Run( () => trainSet.GetRandomBatch( settings.Batch ) );
@@ -162,9 +180,9 @@ public class Net
 			#endregion
 
 			var trainBatch = trainSet.GetRandomBatch( settings.Batch );
-			var testBatch = testSet.GetRandomBatch( settings.Batch );		
+			var testBatch = trainSet.GetRandomBatch( settings.Batch );		
 
-			double averageError = TrainingMiniBatch( trainBatch );
+			double averageError = RunMiniBatch( trainBatch );
 
 			Update( settings.Batch ); // Update weights after processing the mini-batch
 
@@ -183,9 +201,7 @@ public class Net
 				double accuracy = Testing( testSet );
 				await ReportAsync( $"Iteration={iteration}, Avg Error={averageError:f3} Time={timer.Elapsed:hh\\:mm\\:ss}  Validation={accuracy:f4}" );
 			}
-		}
-		
-		await ReportAsync( $"Time={timer.Elapsed:hh\\:mm\\:ss}  Validation={Testing( testSet ):f4}" );
+		}	
 	}
 
 	/// <summary>
@@ -193,7 +209,7 @@ public class Net
 	/// </summary>
 	/// <param name="data">The dataset to train on</param>
 	/// <returns>The average error for the mini-batch</returns>
-	double TrainingMiniBatch( DataSet data )
+	double RunMiniBatch( DataSet data )
 	{
 		double error = 0;
 
@@ -201,7 +217,7 @@ public class Net
 		{
 			Forward( data.Source[ i ] );
 			Backward( data.Target[ i ] );
-			error += ((OutputLayer)OutputLayer).Error;
+			error += ((OutputLayer)this.OutputLayer).Error;
 		}
 
 		return error / data.Source.Count;
@@ -294,17 +310,22 @@ public class Net
 	//}
 	#endregion
 
+	#endregion
+
+
+	#region Forward/Backward ---------------------------------------------------
+
 	/// <summary>
 	/// Feed forward through the network with the specified input pattern.
 	/// </summary>
 	/// <param name="input"></param>
 	void Forward( double[] input )
 	{
-		this.InputLayer.Forward( input );
+		InputLayer.Forward( input );
 
-		foreach( var hidden in this.HiddenLayers ) hidden.Forward();
+		foreach( var hidden in HiddenLayers ) hidden.Forward();
 
-		this.OutputLayer.Forward();
+		OutputLayer.Forward();
 	}
 
 	/// <summary>
@@ -313,21 +334,26 @@ public class Net
 	/// <param name="target"></param>
 	void Backward( double[] target )
 	{
-		this.OutputLayer.Backward( target );
+		OutputLayer.Backward( target );
 
 		HiddenLayers.Reverse();
 		HiddenLayers.ForEach( h => h.Backward() );
 		HiddenLayers.Reverse();		
-	}	
+	}
+
+	#endregion
+
+
+	#region Update -------------------------------------------------------------
 
 	/// <summary>
 	/// Update weights 
 	/// </summary>
-	public void Update( int batchSize )
+	internal void Update( int batchSize )
 	{	
-		foreach( var hidden in this.HiddenLayers ) hidden.Update( batchSize );
+		foreach( var hidden in HiddenLayers ) hidden.Update( batchSize );
 
-		this.OutputLayer.Update( batchSize );
+		OutputLayer.Update( batchSize );
 	}
 
 	#endregion
@@ -359,12 +385,11 @@ public class Net
 
 	#region Report ---------------------------------------------------------------
 
-	public EventHandler<ReportEventArgs> OnReport;	
+	public EventHandler<ReportEventArgs>? OnReport;	
 
 	protected async Task ReportAsync( string message ) => await TriggerReportAsync( new ReportEventArgs { Message = message } );
 
-	async Task TriggerReportAsync( ReportEventArgs ea ) => await Task.Run( () => OnReport.Invoke( null, ea ) );
-
+	async Task TriggerReportAsync( ReportEventArgs ea ) => await Task.Run( () => OnReport?.Invoke( null, ea ) );
 	public class  ReportEventArgs : EventArgs
 	{
 		public required string Message 

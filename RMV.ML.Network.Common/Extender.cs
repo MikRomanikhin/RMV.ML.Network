@@ -1,5 +1,5 @@
 ﻿
-namespace RMV.ML.Network.Configuration;
+namespace RMV.ML.Network.Common;
 
 public static class Extender
 {
@@ -18,8 +18,7 @@ public static class Extender
 	/// <summary>
 	/// Standard Deviation
 	/// </summary>
-	/// <param name="data"></param>
-	/// <returns></returns>
+	/// <param name="data">target collection</param>	
 	public static double StdDev( this IEnumerable<double> data )
 	{
 		if( !data.Any() ) return 0;
@@ -34,10 +33,7 @@ public static class Extender
 	/// <summary>
 	/// Coverts string collection to string with separators
 	/// </summary> 
-	/// <summary>
-	/// Converts a collection to a string with the specified separator.
-	/// Returns null if the collection is null or empty.
-	/// </summary>      
+	/// <summary>	     
 	public static string? Join<T>( this IEnumerable<T>? target, string separator = ", " ) =>
 		target is not null && target.Any() ? string.Join( separator, target ) : null;
 

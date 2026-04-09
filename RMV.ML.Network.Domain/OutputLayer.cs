@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-using RMV.ML.Network.Configuration;
+using RMV.ML.Network.Common;
 
 namespace RMV.ML.Network.Domain;
 

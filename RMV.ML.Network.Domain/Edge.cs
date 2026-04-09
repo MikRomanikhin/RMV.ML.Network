@@ -3,35 +3,35 @@ namespace RMV.ML.Network.Domain;
 /// <summary>
 /// Directed weighted connection between Source and Target neurons.
 /// </summary>	
-/// <param name="from">The source neuron feeding this Synapse</param>
-/// <param name="to">The target neuron fed by this Synapse</param>
+/// <param name="from">The source neuron feeding this Edge</param>
+/// <param name="to">The target neuron fed by this Edge</param>
 sealed class Edge( Node from, Node to )
 {	
-	double sum = 0;
-	double delta; // Delta weight update 	
+	double sum = 0; // Sum of weight updates for batch learning 
+	double delta;   // Delta weight update 	
 
 	/// <summary>
 	/// The weight of the Synapse.
 	/// </summary>
-	public double Weight { get; set; } = 0;
+	internal double Weight { get; set; } = 0;
 
 	/// <summary>
 	/// Helpers
 	/// </summary>
-	public double WeightedTargetError => this.Weight * to.Error;
-	public double WeightedSourceValue => this.Weight * from.Value;
+	internal double WeightedTargetError => this.Weight * to.Error;
+	internal double WeightedSourceValue => this.Weight * from.Value;
 			
 
 	/// <summary>
-	/// Calculates Delta weight update
+	/// Accumulates the product of the source neuron's value and the target neuron's error for batch learning.
 	/// </summary>
-	public void Learn() => this.sum += from.Value * to.Error;
+	internal void Learn() => this.sum += from.Value * to.Error;
    
 
    /// <summary>
    /// Weight adjustment
    /// </summary> 
-	public void Update( int batchSize )
+	internal void Update( int batchSize )
 	{
 		double gradient = this.sum / batchSize;
 

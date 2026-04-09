@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Mapper.cs" />
+    <Compile Remove="Parser.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appSettings.json" />
   </ItemGroup>
 

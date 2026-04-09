@@ -3,9 +3,18 @@
 namespace RMV.ML.MNIST.CS;
 
 /// <summary>
+/// Common interface for layers supporting batch (matrix) forward and backward passes.
+/// </summary>
+public interface ILayer
+{
+	Matrix<double> Forward( Matrix<double> x );
+	Matrix<double> Backward( Matrix<double> dout );
+}
+
+/// <summary>
 /// Rectified Linear Unit (ReLU) activation function layer
 /// </summary>
-public class Relu
+public class Relu : ILayer
 {
 	Matrix<double>? matrixMask;
 	Vector<double>? vectorMask;
@@ -47,7 +56,7 @@ public class Relu
 /// <summary>
 /// Sigmoid activation function layer
 /// </summary>
-public class Sigmoid
+public class Sigmoid : ILayer
 {
 	Matrix<double>? outMatrix;
 	Vector<double>? outVector;
@@ -97,14 +106,14 @@ public class Sigmoid
 /// </summary>
 /// <param name="W"></param>
 /// <param name="B"></param>
-public class Affine( Matrix<double> W, Vector<double> B )
+public class Affine( Matrix<double> W, Vector<double> B ) : ILayer
 {
 	Matrix<double> W { get; set; } = W;
 	//public Vector<double> B { get; set; } = B;
 	public Matrix<double>? dW { get; set; }
 	public Vector<double>? dB { get; set; }
 
-	Matrix<double> x;
+	Matrix<double>? x;
 
 	public Matrix<double> Forward( Matrix<double> input )
 	{
@@ -157,9 +166,7 @@ public class SoftmaxWithLoss
 		this.T = t;
 		this.Y = Softmax( x );
 
-		return CrossEntropyError( this.Y, this.T );
-
-		//return this.Loss;
+		return CrossEntropyError( this.Y, this.T );		
 	}
 
 	public Matrix<double> Backward( double dout = 1 )

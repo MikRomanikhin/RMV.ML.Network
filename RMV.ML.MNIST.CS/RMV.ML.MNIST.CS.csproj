@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Remove="MatrixExtentions.cs" />
+    <Compile Remove="Optimizers.cs" />
     <Compile Remove="python.cs" />
   </ItemGroup>
 

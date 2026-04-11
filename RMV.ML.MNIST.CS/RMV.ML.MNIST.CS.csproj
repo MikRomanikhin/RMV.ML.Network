@@ -9,9 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Controller2Layer.cs" />
+    <Compile Remove="Matrix.cs" />
     <Compile Remove="MatrixExtentions.cs" />
     <Compile Remove="Optimizers.cs" />
     <Compile Remove="python.cs" />
+    <Compile Remove="TwoLayerNet.cs" />
   </ItemGroup>
 
   <ItemGroup>

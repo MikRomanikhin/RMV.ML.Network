@@ -10,19 +10,18 @@ namespace RMV.ML.MNIST.CS;
 /// </summary>
 public class MultiLayerNet
 {
-	public int InputSize { get; }
-	public int OutputSize { get; }
-	public List<int> HiddenSizeList { get; }
-	public int HiddenLayerNum { get; }
-	public double WeightDecayLambda { get; }
-	
+	readonly int inputSize, outputSize; // input and output dimensions
+	readonly List<int> HiddenSizeList;  // list of hidden layer sizes
+	readonly int hiddenLayerNum;        // number of hidden layers
+	readonly double weightDecayLambda;  // weight decay coefficient
+
 	/// <summary>
-	/// Weight matrices indexed by layer (1-based: index 0 is unused).
+	/// Weight matrices indexed by layer 
 	/// </summary>
 	Matrix<double>[] Weights { get; }
 
 	/// <summary>
-	/// Bias vectors indexed by layer (1-based: index 0 is unused).
+	/// Bias vectors indexed by layer 
 	/// </summary>
 	Vector<double>[] Biases { get; }
 
@@ -32,9 +31,9 @@ public class MultiLayerNet
 	readonly List<ILayer> Layers = [];
 
 	/// <summary>
-	/// Affine layers indexed by layer number (1-based: index 0 is unused) for gradient extraction.
+	/// Affine layers indexed by layer number for gradient extraction.
 	/// </summary>
-	readonly Affine[] AffineLayers;	
+	readonly Affine[] AffineLayers;
 
 	SoftmaxWithLoss LastLayer { get; } = new();
 
@@ -45,22 +44,22 @@ public class MultiLayerNet
 	/// </summary>
 	public MultiLayerNet( AppSettings settings )
 	{
-		this.InputSize = settings.Input;
+		this.inputSize = settings.Input;
 		this.HiddenSizeList = [ .. settings.Hidden ];
-		this.OutputSize = settings.Output;
-		this.HiddenLayerNum = settings.Hidden.Length;
-		this.WeightDecayLambda = settings.Decay;
+		this.outputSize = settings.Output;
+		this.hiddenLayerNum = settings.Hidden.Length;
+		this.weightDecayLambda = settings.Decay;
 
-		int totalLayers = HiddenLayerNum + 1;
-		this.Weights = new Matrix<double>[ totalLayers + 1 ]; // 1-based indexing
-		this.Biases = new Vector<double>[ totalLayers + 1 ];
-		this.AffineLayers = new Affine[ totalLayers + 1 ];
+		int totalLayers = hiddenLayerNum + 1;
+		this.Weights = new Matrix<double>[ totalLayers ];
+		this.Biases = new Vector<double>[ totalLayers ];
+		this.AffineLayers = new Affine[ totalLayers ];
 
 		this.optimizer = BuildOptimizer( settings );
 
 		InitWeight( settings.Activation );
 
-		for( int i = 1; i <= HiddenLayerNum; i++ )
+		for( int i = 0; i < hiddenLayerNum; i++ )
 		{
 			var affine = new Affine( this.Weights[ i ], this.Biases[ i ] );
 			this.AffineLayers[ i ] = affine;
@@ -72,11 +71,11 @@ public class MultiLayerNet
 				this.Layers.Add( new Sigmoid() );
 		}
 
-		int lastIdx = this.HiddenLayerNum + 1;
+		int lastIdx = hiddenLayerNum;
 		var lastAffine = new Affine( this.Weights[ lastIdx ], this.Biases[ lastIdx ] );
 		this.AffineLayers[ lastIdx ] = lastAffine;
 		this.Layers.Add( lastAffine );
-	}	
+	}
 
 
 	/// <summary>
@@ -100,22 +99,22 @@ public class MultiLayerNet
 	/// </summary>	
 	void InitWeight( ActivationType activation )
 	{
-		var allSizeList = new List<int> { InputSize };
+		var allSizeList = new List<int> { inputSize };
 		allSizeList.AddRange( HiddenSizeList );
-		allSizeList.Add( OutputSize );
+		allSizeList.Add( outputSize );
 
-		for( int i = 1; i < allSizeList.Count; i++ )
+		for( int i = 0; i < allSizeList.Count - 1; i++ )
 		{
 			double scale = 0.01;
-			if( activation == ActivationType.Relu  )
-				scale = Math.Sqrt( 2.0 / allSizeList[ i - 1 ] ); // ReLU (He initialization)
+			if( activation == ActivationType.Relu )
+				scale = Math.Sqrt( 2.0 / allSizeList[ i ] ); // ReLU (He initialization)
 			else if( activation == ActivationType.Sigmoid )
-				scale = Math.Sqrt( 1.0 / allSizeList[ i - 1 ] ); // Sigmoid (Xavier initialization)
+				scale = Math.Sqrt( 1.0 / allSizeList[ i ] ); // Sigmoid (Xavier initialization)
 			//else if( double.TryParse( weightInitStd, out double customScale ) )
 			//	scale = customScale;
-						
-			this.Weights[ i ] = Matrix<double>.Build.Random( allSizeList[ i - 1 ], allSizeList[ i ], new Normal( 0.0, scale ) );
-			this.Biases[ i ] = Vector<double>.Build.Dense( allSizeList[ i ], 0.0 );			
+
+			this.Weights[ i ] = Matrix<double>.Build.Random( allSizeList[ i ], allSizeList[ i + 1 ], new Normal( 0.0, scale ) );
+			this.Biases[ i ] = Vector<double>.Build.Dense( allSizeList[ i + 1 ], 0.0 );
 		}
 	}
 
@@ -125,10 +124,10 @@ public class MultiLayerNet
 	/// <param name="x">Input data matrix</param>
 	/// <returns>Output predictions matrix</returns>
 	Matrix<double> Predict( Matrix<double> x )
-	{		
+	{
 		this.Layers.ForEach( l => x = l.Forward( x ) );
 
-		return x;		
+		return x;
 	}
 
 	/// <summary>
@@ -143,11 +142,11 @@ public class MultiLayerNet
 
 		double weightDecay = 0.0;
 
-		for( int i = 1; i <= HiddenLayerNum + 1; i++ )
-		{			
+		for( int i = 0; i < Weights.Length; i++ )
+		{
 			double sumSqr = this.Weights[ i ].Enumerate().Sum( val => val * val );
 
-			weightDecay += 0.5 * WeightDecayLambda * sumSqr;
+			weightDecay += 0.5 * weightDecayLambda * sumSqr;
 		}
 
 		return LastLayer.Forward( y, t ) + weightDecay;
@@ -159,21 +158,28 @@ public class MultiLayerNet
 	/// <param name="x">Input data matrix</param>
 	/// <param name="t">True labels matrix</param>
 	/// <returns>Accuracy value</returns>
-	public double Accuracy( Matrix<double> x, Matrix<double> t )
+	public (double, List<int>, List<int>) Accuracy( Matrix<double> x, Matrix<double> t )
 	{
 		var y = Predict( x );
 		int batchSize = y.RowCount;
 		int correct = 0;
+		List<int> errors = [];
+		List<int> indexes = [];
 
 		for( int i = 0; i < batchSize; i++ )
 		{
 			int yPred = y.Row( i ).MaximumIndex();
 			int tIndex = t.ColumnCount == 1 ? ( int )t[ i, 0 ] : t.Row( i ).MaximumIndex();
 
-			if( yPred == tIndex ) correct++;			
+			if( yPred == tIndex ) correct++;  // count correct predictions
+			else // store misclassified sample information 
+			{
+				errors.Add( yPred );  // store predicted label 
+				indexes.Add( i );     // store image index 
+			}		
 		}
 
-		return ( double )correct / batchSize;
+		return (( double )correct / batchSize, errors, indexes);
 	}
 
 	/// <summary>
@@ -194,7 +200,7 @@ public class MultiLayerNet
 	/// </summary>
 	/// <param name="x">Input data matrix</param>
 	/// <param name="t">True labels matrix</param>
-	/// <returns>Tuple of weight gradients and bias gradients arrays (1-based indexing)</returns>
+	/// <returns>Tuple of weight gradients and bias gradients arrays (0-based indexing)</returns>
 	(Matrix<double>[], Vector<double>[]) Gradient( Matrix<double> x, Matrix<double> t )
 	{
 		Loss( x, t ); // Forward pass
@@ -206,17 +212,16 @@ public class MultiLayerNet
 			dout = Layers[ i ].Backward( dout );
 		}
 
-		int totalLayers = HiddenLayerNum + 1;
-		var dW = new Matrix<double>[ totalLayers + 1 ];
-		var dB = new Vector<double>[ totalLayers + 1 ];
+		var dW = new Matrix<double>[ AffineLayers.Length ];
+		var dB = new Vector<double>[ AffineLayers.Length ];
 
-		for( int i = 1; i <= totalLayers; i++ )
+		for( int i = 0; i < AffineLayers.Length; i++ )
 		{
-			dW[ i ] = AffineLayers[ i ].dW + this.Weights[ i ].Multiply( WeightDecayLambda ); // W_grad = dW + lambda * W
+			dW[ i ] = AffineLayers[ i ].dW + this.Weights[ i ].Multiply( weightDecayLambda ); // W_grad = dW + lambda * W
 			dB[ i ] = AffineLayers[ i ].dB;
 		}
 
 		return (dW, dB);
-	}	
-	
+	}
+
 }

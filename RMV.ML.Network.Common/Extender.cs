@@ -16,25 +16,30 @@ public static class Extender
 	}
 
 	/// <summary>
-	/// Standard Deviation
-	/// </summary>
-	/// <param name="data">target collection</param>	
-	public static double StdDev( this IEnumerable<double> data )
+	/// Reshapes 1d to 2d array
+	/// </summary>      
+	public static T[,] Reshape<T>( this T[] data, int rows, int cols )
 	{
-		if( !data.Any() ) return 0;
+		var result = new T[ rows, cols ];
 
-		double avg = data.Average();
+		int index = 0;
 
-		double sum = data.Sum( d => Math.Pow( d - avg, 2 ) );
+		for( int i = 0; i < rows; i++ )
+		{
+			for( int j = 0; j < rows; j++ )
+			{
+				result[ i, j ] = data[ index++ ];
+			}
+		}
 
-		return Math.Sqrt( ( sum ) / ( data.Count() - 1 ) );
+		return result;
 	}
 
 	/// <summary>
 	/// Coverts string collection to string with separators
 	/// </summary> 
 	/// <summary>	     
-	public static string? Join<T>( this IEnumerable<T>? target, string separator = ", " ) =>
+	public static string? Join<T>( this IEnumerable<T>? target, char separator = ',' ) =>
 		target is not null && target.Any() ? string.Join( separator, target ) : null;
 
 

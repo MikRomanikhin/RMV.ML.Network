@@ -58,7 +58,12 @@ public class AppSettings
 	/// Number of iterations
 	/// </summary>
 	public int Iterations { get; set; }
-	
+
+	/// <summary>
+	/// Number of consecutive iterations without improvement.
+	/// </summary>
+	public int Stagnation { get; set; } = 100;
+
 	/// <summary>
 	/// Batch size
 	/// </summary>
@@ -90,5 +95,11 @@ public class AppSettings
 	/// Errors file path
 	/// </summary>
 	[ConfigurationKeyName( "error-path" )]
-	public string? ErrorPath { get; set; }		
+	public required string ErrorPath { get; set; }
+
+	/// <summary>
+	/// Indexes file path
+	/// </summary>
+	[ConfigurationKeyName( "index-path" )]
+	public required string IndexPath { get; set; }
 }

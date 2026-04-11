@@ -4,13 +4,40 @@ namespace RMV.ML.MNIST.CS;
 
 /// <summary>
 /// Interface for optimization algorithms used in training neural networks.
-/// Arrays use 1-based indexing (index 0 is unused) to match layer numbering.
 /// </summary>
 interface IOptimizer
 {
 	void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB );
 }
 
+/// <summary>
+/// Base class for implementing optimization algorithms that update weights and biases
+/// </summary>
+/// <remarks>
+/// Defines the common structure and initialization logic for optimizers that operate on arrays of weight matrices and bias vectors.  
+///</remarks>
+public abstract class BaseOptimizer : IOptimizer
+{
+	protected Matrix<double>[]? vW;
+	protected Vector<double>[]? vB;
+
+	protected void	Initialize( Matrix<double>[] weights, Vector<double>[] biases )
+	{
+		if( vW == null )
+		{
+			vW = new Matrix<double>[ weights.Length ];
+			vB = new Vector<double>[ biases.Length ];
+
+			for( int i = 0; i < weights.Length; i++ )
+			{
+				vW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
+				vB[ i ] = Vector<double>.Build.Dense( biases[ i ].Count, 0.0 );
+			}
+		}
+	}
+
+	public abstract void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB );
+}
 
 /// <summary>
 /// Stochastic Gradient Descent
@@ -19,7 +46,7 @@ public class SGD( double rate = 0.01 ) : IOptimizer
 {
 	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
 	{
-		for( int i = 1; i < weights.Length; i++ )
+		for( int i = 0; i < weights.Length; i++ )
 		{
 			weights[ i ].Map2( ( p, g ) => p - ( rate * g ), dW[ i ], weights[ i ] );
 			biases[ i ].Map2( ( p, g ) => p - ( rate * g ), dB[ i ], biases[ i ] );
@@ -31,26 +58,13 @@ public class SGD( double rate = 0.01 ) : IOptimizer
 /// <summary>
 /// Momentum SGD
 /// </summary>
-public class Momentum( double rate = 0.01, double momentum = 0.9 ) : IOptimizer
+public class Momentum( double rate = 0.01d, double momentum = 0.9d ) : BaseOptimizer
 {
-	Matrix<double>[]? vW;
-	Vector<double>[]? vB;
+	public override void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
+	{		
+		Initialize( weights, biases );
 
-	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
-	{
-		if( vW == null )
-		{
-			vW = new Matrix<double>[ weights.Length ];
-			vB = new Vector<double>[ biases.Length ];
-
-			for( int i = 1; i < weights.Length; i++ )
-			{
-				vW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
-				vB[ i ] = Vector<double>.Build.Dense( biases[ i ].Count, 0.0 );
-			}
-		}
-
-		for( int i = 1; i < weights.Length; i++ )
+		for( int i = 0; i < weights.Length; i++ )
 		{
 			vW[ i ].Map2( ( vi, gi ) => momentum * vi - rate * gi, dW[ i ], vW[ i ] );
 			weights[ i ].Map2( ( pi, vi ) => pi + vi, vW[ i ], weights[ i ] );
@@ -64,26 +78,13 @@ public class Momentum( double rate = 0.01, double momentum = 0.9 ) : IOptimizer
 /// <summary>
 /// Nesterov's Accelerated Gradient (http://arxiv.org/abs/1212.0901)
 /// </summary>
-public class Nesterov( double rate = 0.01, double momentum = 0.9 ) : IOptimizer
+public class Nesterov( double rate = 0.01d, double momentum = 0.9d ) : BaseOptimizer
 {
-	Matrix<double>[]? vW;
-	Vector<double>[]? vB;
+	public override void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
+	{		
+		Initialize( weights, biases );
 
-	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
-	{
-		if( vW == null )
-		{
-			vW = new Matrix<double>[ weights.Length ];
-			vB = new Vector<double>[ biases.Length ];
-
-			for( int i = 1; i < weights.Length; i++ )
-			{
-				vW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
-				vB[ i ] = Vector<double>.Build.Dense( biases[ i ].Count, 0.0 );
-			}
-		}
-
-		for( int i = 1; i < weights.Length; i++ )
+		for( int i = 0; i < weights.Length; i++ )
 		{
 			var vWPrev = vW[ i ].Clone();
 			vW[ i ].Map2( ( vi, gi ) => momentum * vi - rate * gi, dW[ i ], vW[ i ] );
@@ -101,33 +102,20 @@ public class Nesterov( double rate = 0.01, double momentum = 0.9 ) : IOptimizer
 /// <summary>
 /// AdaGrad (http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)
 /// </summary>
-public class AdaGrad( double rate = 0.01 ) : IOptimizer
-{
-	Matrix<double>[]? hW;
-	Vector<double>[]? hB;
+public class AdaGrad( double rate = 0.01d ) : BaseOptimizer
+{	
+	public override void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
+	{	
+		Initialize( weights, biases );
 
-	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
-	{
-		if( hW == null )
+		for( int i = 0; i < weights.Length; i++ )
 		{
-			hW = new Matrix<double>[ weights.Length ];
-			hB = new Vector<double>[ biases.Length ];
-
-			for( int i = 1; i < weights.Length; i++ )
-			{
-				hW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
-				hB[ i ] = Vector<double>.Build.Dense( biases[ i ].Count, 0.0 );
-			}
-		}
-
-		for( int i = 1; i < weights.Length; i++ )
-		{
-			hW[ i ].Map2( ( hi, gi ) => hi + gi * gi, dW[ i ], hW[ i ] );
-			var stepW = dW[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), hW[ i ] );
+			vW[ i ].Map2( ( hi, gi ) => hi + gi * gi, dW[ i ], vW[ i ] );
+			var stepW = dW[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), vW[ i ] );
 			weights[ i ].Map2( ( pi, si ) => pi - si, stepW, weights[ i ] );
 
-			hB![ i ].Map2( ( hi, gi ) => hi + gi * gi, dB[ i ], hB[ i ] );
-			var stepB = dB[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), hB[ i ] );
+			vB![ i ].Map2( ( hi, gi ) => hi + gi * gi, dB[ i ], vB[ i ] );
+			var stepB = dB[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), vB[ i ] );
 			biases[ i ].Map2( ( pi, si ) => pi - si, stepB, biases[ i ] );
 		}
 	}
@@ -136,37 +124,23 @@ public class AdaGrad( double rate = 0.01 ) : IOptimizer
 /// <summary>
 /// RMSprop (http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
 /// </summary>
-public class RmsProp( double rate = 0.01, double decay = 0.99 ) : IOptimizer
-{
-	Matrix<double>[]? hW;
-	Vector<double>[]? hB;
+public class RmsProp( double rate = 0.01d, double decay = 0.99d ) : BaseOptimizer
+{	
+	public override void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
+	{	
+		Initialize( weights, biases );
 
-	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
-	{
-		if( hW == null )
+		for( int i = 0; i < weights.Length; i++ )
 		{
-			hW = new Matrix<double>[ weights.Length ];
-			hB = new Vector<double>[ biases.Length ];
+			// Weights: h = decay * h + (1 - decay) * g² — in-place
+			vW[ i ].Map2( ( hi, gi ) => decay * hi + ( 1d - decay ) * gi * gi, dW[ i ], vW[ i ] );
+			var stepW = dW[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), vW[ i ] );
+			weights[ i ].Map2( ( pi, si ) => pi - si, stepW, weights[ i ] );
 
-			for( int i = 1; i < weights.Length; i++ )
-			{
-				hW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
-				hB[ i ] = Vector<double>.Build.Dense( biases[ i ].Count, 0.0 );
-			}
-		}
-
-		for( int i = 1; i < weights.Length; i++ )
-		{
-			hW[ i ] *= decay;
-			hW[ i ] += ( 1d - decay ) * dW[ i ].PointwiseMultiply( dW[ i ] );
-			var hWsqrt = hW[ i ].Map( x => Math.Sqrt( x ) + 1e-7 );
-			var stepW = dW[ i ].PointwiseDivide( hWsqrt ) * rate;
-			weights[ i ] -= stepW;
-
-			hB![ i ] = hB[ i ].Map( h => h * decay ) + ( 1d - decay ) * dB[ i ].PointwiseMultiply( dB[ i ] );
-			var hBsqrt = hB[ i ].Map( x => Math.Sqrt( x ) + 1e-7 );
-			var stepB = dB[ i ].PointwiseDivide( hBsqrt ) * rate;
-			biases[ i ] -= stepB;
+			// Biases: h = decay * h + (1 - decay) * g² — in-place
+			vB![ i ].Map2( ( hi, gi ) => decay * hi + ( 1d - decay ) * gi * gi, dB[ i ], vB[ i ] );
+			var stepB = dB[ i ].Map2( ( gi, hi ) => rate * gi / ( Math.Sqrt( hi ) + 1e-7 ), vB[ i ] );
+			biases[ i ].Map2( ( pi, si ) => pi - si, stepB, biases[ i ] );
 		}
 	}
 }
@@ -174,13 +148,13 @@ public class RmsProp( double rate = 0.01, double decay = 0.99 ) : IOptimizer
 /// <summary>
 /// Adam (http://arxiv.org/abs/1412.6980v8)
 /// </summary>
-public class Adam( double rate = 0.001, double beta1 = 0.9, double beta2 = 0.999 ) : IOptimizer
+public class Adam( double rate = 0.001d, double beta1 = 0.9d, double beta2 = 0.999d ) : BaseOptimizer
 {
 	int iter = 0;
-	Matrix<double>[]? mW, vW;
-	Vector<double>[]? mB, vB;
+	Matrix<double>[]? mW;//, vW;
+	Vector<double>[]? mB;//, vB;
 
-	public void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
+	public override void Update( Matrix<double>[] weights, Vector<double>[] biases, Matrix<double>[] dW, Vector<double>[] dB )
 	{
 		if( mW == null )
 		{
@@ -189,7 +163,7 @@ public class Adam( double rate = 0.001, double beta1 = 0.9, double beta2 = 0.999
 			mB = new Vector<double>[ biases.Length ];
 			vB = new Vector<double>[ biases.Length ];
 
-			for( int i = 1; i < weights.Length; i++ )
+			for( int i = 0; i < weights.Length; i++ )
 			{
 				mW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
 				vW[ i ] = Matrix<double>.Build.Dense( weights[ i ].RowCount, weights[ i ].ColumnCount, 0.0 );
@@ -201,17 +175,19 @@ public class Adam( double rate = 0.001, double beta1 = 0.9, double beta2 = 0.999
 		iter++;
 		double lr_t = rate * Math.Sqrt( 1.0 - Math.Pow( beta2, iter ) ) / ( 1.0 - Math.Pow( beta1, iter ) );
 
-		for( int i = 1; i < weights.Length; i++ )
+		for( int i = 0; i < weights.Length; i++ )
 		{
 			// Weights
 			mW[ i ].Map2( ( mi, gi ) => beta1 * mi + ( 1 - beta1 ) * gi, dW[ i ], mW[ i ] );
 			vW![ i ].Map2( ( vi, gi ) => beta2 * vi + ( 1 - beta2 ) * gi * gi, dW[ i ], vW[ i ] );
+
 			var stepW = mW[ i ].Map2( ( mi, vi ) => lr_t * mi / ( Math.Sqrt( vi ) + 1e-7 ), vW[ i ] );
 			weights[ i ].Map2( ( pi, si ) => pi - si, stepW, weights[ i ] );
 
 			// Biases
 			mB![ i ].Map2( ( mi, gi ) => beta1 * mi + ( 1 - beta1 ) * gi, dB[ i ], mB[ i ] );
 			vB![ i ].Map2( ( vi, gi ) => beta2 * vi + ( 1 - beta2 ) * gi * gi, dB[ i ], vB[ i ] );
+			
 			var stepB = mB[ i ].Map2( ( mi, vi ) => lr_t * mi / ( Math.Sqrt( vi ) + 1e-7 ), vB[ i ] );
 			biases[ i ].Map2( ( pi, si ) => pi - si, stepB, biases[ i ] );
 		}

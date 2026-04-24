@@ -19,10 +19,12 @@ public interface ILayer
 public class Relu : ILayer
 {
 	Matrix<double>? matrixMask;
-	Vector<double>? vectorMask;
-
-	// --- Batch (Matrix) Support ---
-
+		
+	/// <summary>
+	/// Forward pass of the ReLU activation function.
+	/// </summary>
+	/// <param name="x">Input matrix.</param>
+	/// <returns>Output matrix after applying ReLU.</returns>
 	public Matrix<double> Forward( Matrix<double> x )
 	{		
 		this.matrixMask = x.Map( val => val > 0 ? 1d : 0d ); // Map creates a mask: 1.0 if > 0, else 0.0
@@ -30,29 +32,18 @@ public class Relu : ILayer
 		// Element-wise multiplication (inherently zeroes out masked values)
 		return x.PointwiseMultiply( this.matrixMask );
 	}
-
+	
+	/// <summary>
+	/// Backward pass of the ReLU activation function.
+	/// </summary>
+	/// <param name="dout">Gradient of the loss with respect to the output.</param>
+	/// <returns>Gradient of the loss with respect to the input.</returns>
 	public Matrix<double> Backward( Matrix<double> dout )
 	{
 		if( this.matrixMask is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
 
 		return dout.PointwiseMultiply( this.matrixMask );
-	}
-
-	// --- Single Entry (Vector) Support ---
-
-	//public Vector<double> Forward( Vector<double> x )
-	//{
-	//	this.vectorMask = x.Map( val => val > 0 ? 1.0 : 0.0 );
-
-	//	return x.PointwiseMultiply( this.vectorMask );
-	//}
-
-	//public Vector<double> Backward( Vector<double> dout )
-	//{
-	//	if( this.vectorMask is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
-
-	//	return dout.PointwiseMultiply( this.vectorMask );
-	//}
+	}	
 }
 
 /// <summary>
@@ -61,7 +52,7 @@ public class Relu : ILayer
 public class Sigmoid : ILayer
 {
 	Matrix<double>? outMatrix;
-	Vector<double>? outVector;
+	//Vector<double>? outVector;
 
 	static double SigmoidFunc( double x ) => 1.0 / ( 1.0 + Math.Exp( -x ) );
 
@@ -82,25 +73,7 @@ public class Sigmoid : ILayer
 		var yOneMinusY = this.outMatrix.Map( y => y * ( 1.0 - y ) ); // dx = dout * y * (1 - y)
 
 		return dout.PointwiseMultiply( yOneMinusY );
-	}
-
-	// --- Single Entry (Vector) Support ---
-
-	//public Vector<double> Forward( Vector<double> x )
-	//{
-	//	this.outVector = x.Map( SigmoidFunc );
-
-	//	return this.outVector;
-	//}
-
-	//public Vector<double> Backward( Vector<double> dout )
-	//{
-	//	if( this.outVector is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
-
-	//	var yOneMinusY = this.outVector.Map( y => y * ( 1.0 - y ) );
-
-	//	return dout.PointwiseMultiply( yOneMinusY );
-	//}
+	}	
 }
 
 /// <summary>
@@ -109,14 +82,17 @@ public class Sigmoid : ILayer
 /// <param name="W"></param>
 /// <param name="B"></param>
 public class Affine( Matrix<double> W, Vector<double> B ) : ILayer
-{
-	Matrix<double> W { get; set; } = W;
-	//public Vector<double> B { get; set; } = B;
+{	
 	public Matrix<double>? dW { get; set; }
 	public Vector<double>? dB { get; set; }
 
 	Matrix<double>? x;
-
+	
+	/// <summary>
+	/// Forward pass of the affine (fully connected) layer.
+	/// </summary>
+	/// <param name="input">Input matrix.</param>
+	/// <returns>Output matrix after applying the affine transformation.</returns>
 	public Matrix<double> Forward( Matrix<double> input )
 	{
 		this.x = input; // store input for backward pass
@@ -133,11 +109,16 @@ public class Affine( Matrix<double> W, Vector<double> B ) : ILayer
 		return outMatrix;
 	}
 
+	/// <summary>
+	/// Backward pass of the affine (fully connected) layer.
+	/// </summary>
+	/// <param name="dout">Gradient of the loss with respect to the output.</param>
+	/// <returns>Gradient of the loss with respect to the input.</returns>
 	public Matrix<double> Backward( Matrix<double> dout )
 	{
 		if( x is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
 				
-		var dx = dout.Multiply( this.W.Transpose() ); // dx = dout * W^T
+		var dx = dout.Multiply( W.Transpose() ); // dx = dout * W^T
 				
 		this.dW = x.TransposeThisAndMultiply( dout ); // dW = x^T * dout (Optimized to avoid explicit transpose allocation)
 
@@ -151,10 +132,9 @@ public class Affine( Matrix<double> W, Vector<double> B ) : ILayer
 /// Softmax activation combined with Cross-Entropy Loss layer. Computes softmax probabilities and loss in the forward pass,
 /// </summary>
 public class SoftmaxWithLoss
-{
-	//double Loss = 0;
-	Matrix<double>? Y; //{ get; private set; }
-	Matrix<double>? T;// { get; private set; }
+{	
+	Matrix<double>? Y; 
+	Matrix<double>? T;
 
 	/// <summary>
 	/// Compute softmax probabilities and cross-entropy loss for inputs <paramref name="x"/> and targets <paramref name="t"/>.
@@ -170,7 +150,12 @@ public class SoftmaxWithLoss
 
 		return CrossEntropyError( this.Y, this.T );
 	}
-
+	
+	/// <summary>
+	/// Backward pass of the softmax with loss layer.
+	/// </summary>
+	/// <param name="dout">Gradient of the loss with respect to the output.</param>
+	/// <returns>Gradient of the loss with respect to the input.</returns>
 	public Matrix<double> Backward( double dout = 1 )
 	{
 		if( this.Y is null || this.T is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
@@ -204,6 +189,11 @@ public class SoftmaxWithLoss
 		return dx;
 	}
 
+	/// <summary>
+	/// Computes the softmax probabilities for each row of the input matrix.
+	/// </summary>
+	/// <param name="x">Input matrix.</param>
+	/// <returns>Matrix of softmax probabilities.</returns>
 	static Matrix<double> Softmax( Matrix<double> x )
 	{
 		int batchSize = x.RowCount;
@@ -214,8 +204,7 @@ public class SoftmaxWithLoss
 		{
 			var row = x.Row( i );
 			double max = row.Maximum();
-
-			// Subtract max for numerical stability, then exp
+			
 			var expRow = row.Map( val => Math.Exp( val - max ) );
 
 			double sum = expRow.Sum();
@@ -226,6 +215,13 @@ public class SoftmaxWithLoss
 		return result;
 	}
 
+	/// <summary>
+	/// Computes the cross-entropy error between the predicted probabilities and the target labels.
+	/// Supports both one-hot encoded targets and label indices.
+	/// </summary>
+	/// <param name="y">Predicted probabilities (softmax output).</param>
+	/// <param name="t">Target labels (one-hot or label indices).</param>
+	/// <returns>Average cross-entropy loss over the batch.</returns>
 	static double CrossEntropyError( Matrix<double> y, Matrix<double> t )
 	{
 		int batchSize = y.RowCount;
@@ -237,7 +233,7 @@ public class SoftmaxWithLoss
 
 			double sum = t.PointwiseMultiply( logY ).ColumnSums().Sum(); // Pointwise multiply t by log(y) and sum all elements
 
-			return -sum / batchSize;
+			return -sum / batchSize; // Average loss over the batch
 		}
 
 		double loss = 0;
@@ -311,9 +307,9 @@ public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int p
 		int FH = W.GetLength( 2 ); // filter height
 		int FW = W.GetLength( 3 ); // filter width
 
-		int N = input.GetLength( 0 );
-		int H = input.GetLength( 2 );
-		int inW = input.GetLength( 3 );
+		int N = input.GetLength( 0 );   // batch size
+		int H = input.GetLength( 2 );   // input height
+		int inW = input.GetLength( 3 ); // input width
 
 		int outH = 1 + ( H + 2 * pad - FH ) / stride;   // output height based on input height, filter height, padding, and stride
 		int outW = 1 + ( inW + 2 * pad - FW ) / stride; // output width based on input width, filter width, padding, and stride
@@ -330,10 +326,10 @@ public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int p
 					for( int fw = 0; fw < FW; fw++ )
 						this.colW[ idx++, fn ] = W[ fn, c, fh, fw ];
 		}
-				
+
 		var outMatrix = this.col.Multiply( this.colW ); // out = col * colW + b, result shape: (N*outH*outW, FN)
 
-		for( int i = 0; i < outMatrix.RowCount; i++ )
+		for( int i = 0; i < outMatrix.RowCount; i++ ) // Add bias B to each row of the output matrix
 		{
 			var row = outMatrix.Row( i );
 			row.Add( B, row );
@@ -347,8 +343,8 @@ public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int p
 			for( int oh = 0; oh < outH; oh++ )
 				for( int ow = 0; ow < outW; ow++ )
 				{
-					for( int fn = 0; fn < FN; fn++ )	result[ n, fn, oh, ow ] = outMatrix[ r++, fn ];
-					//r++;
+					for( int fn = 0; fn < FN; fn++ ) result[ n, fn, oh, ow ] = outMatrix[ r, fn ];
+					r++;
 				}
 
 		this.x = input;
@@ -380,16 +376,15 @@ public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int p
 			for( int oh = 0; oh < outH; oh++ )
 				for( int ow = 0; ow < outW; ow++ )
 				{
-					for( int fn = 0; fn < FN; fn++ )	doutMatrix[ r++, fn ] = dout[ n, fn, oh, ow ];
-					//r++;
+					for( int fn = 0; fn < FN; fn++ ) doutMatrix[ r, fn ] = dout[ n, fn, oh, ow ];
+					r++;
 				}
 
 		this.dB = doutMatrix.ColumnSums(); // dB = sum of dout along axis 0
 
 		var dWMatrix = this.col.TransposeThisAndMultiply( doutMatrix ); // dW = col^T * dout, shape: (C*FH*FW, FN)
 
-		// Reshape dW from (C*FH*FW, FN) → (FN, C, FH, FW)
-		this.dW = new double[ FN, C, FH, FW ];
+		this.dW = new double[ FN, C, FH, FW ]; // Reshape dW from (C*FH*FW, FN) → (FN, C, FH, FW)
 		for( int fn = 0; fn < FN; fn++ )
 		{
 			int idx = 0;
@@ -410,14 +405,14 @@ public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int p
 	}
 }
 
-/// <summary>
-/// Max pooling layer: downsamples 4D input (N, C, H, W) by taking the maximum value in each pooling window.
-/// </summary>
-/// <param name="poolH">Pooling window height</param>
-/// <param name="poolW">Pooling window width</param>
-/// <param name="stride">Pooling stride</param>
-/// <param name="pad">Zero-padding size</param>
-public class Pooling( int poolH, int poolW, int stride = 2, int pad = 0 )
+	/// <summary>
+	/// Max pooling layer: downsamples 4D input (N, C, H, W) by taking the maximum value in each pooling window.
+	/// </summary>
+	/// <param name="poolH">Pooling window height</param>
+	/// <param name="poolW">Pooling window width</param>
+	/// <param name="stride">Pooling stride</param>
+	/// <param name="pad">Zero-padding size</param>
+	public class Pooling( int poolH, int poolW, int stride = 2, int pad = 0 )
 {
 	double[,,,]? x;
 	int[]? argMax;

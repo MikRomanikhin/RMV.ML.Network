@@ -17,7 +17,7 @@
 			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
 		</Configuration>
 		<Configuration Name="Debug|x64" UseCompiler="ifxCompiler">
-			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" RealKIND="realKIND8" LocalSavedScalarsZero="true" InitArrays="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" HeapArrays="0" WarnInterfaces="true" RealKIND="realKIND8" LocalSavedScalarsZero="true" InitArrays="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
 			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -39,7 +39,7 @@
 			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler">
-			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" HeapArrays="100000" RuntimeLibrary="rtMultiThreadedDLL"/>
 			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -51,7 +51,20 @@
 		</Configuration>
 	</Configurations>
 	<Files>
-		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+			<File RelativePath=".\ControllerModule.f90">
+			</File>
+			<File RelativePath=".\DataSetModule.f90"/>
+			<File RelativePath=".\Functions.f90"/>
+			<File RelativePath=".\Layers.f90"/>
+			<File RelativePath=".\main.f90">
+			</File>
+			<File RelativePath=".\MultiLayerModule.f90">
+			</File>
+			<File RelativePath=".\Optimizers.f90"/>
+			<File RelativePath=".\ParcerModule.f90">
+			</File>
+		</Filter>
 	</Files>
 	<Globals/>
 </VisualStudioProject>

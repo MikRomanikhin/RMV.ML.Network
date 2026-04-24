@@ -15,6 +15,19 @@ public class AppSettings
 	public int Input { get; set; }
 
 	/// <summary>
+	/// Dimensions of the input data e.g., channels, height, width for images
+	/// </summary>
+	[ConfigurationKeyName( "input-dim" )]
+	public int[] InputDim { get; set; } = [];
+
+	/// <summary>
+	/// Filter parameters for convolutional layers e.g., number of filters, filter size, padding, stride
+	/// </summary>
+	public int[] Filters { get; set; } = [];
+
+	public double WeightInitStd { get; set; } = 0.01;
+
+	/// <summary>
 	/// Hidden layers sizes
 	/// </summary>
 	public int[] Hidden { get; set; } = [];

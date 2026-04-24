@@ -117,18 +117,7 @@ public class MultiLayerNet
 			this.Biases[ i ] = Vector<double>.Build.Dense( allSizeList[ i + 1 ], 0.0 );
 		}
 	}
-
-	/// <summary>
-	/// Perform a forward pass through the network to compute the output predictions for the given input data.
-	/// </summary>
-	/// <param name="x">Input data matrix</param>
-	/// <returns>Output predictions matrix</returns>
-	Matrix<double> Predict( Matrix<double> x )
-	{
-		this.Layers.ForEach( l => x = l.Forward( x ) );
-
-		return x;
-	}
+	
 
 	/// <summary>
 	/// Compute the loss (cost) of the network's predictions compared to the true labels, including weight decay regularization if specified.
@@ -157,7 +146,7 @@ public class MultiLayerNet
 	/// </summary>
 	/// <param name="x">Input data matrix</param>
 	/// <param name="t">True labels matrix</param>
-	/// <returns>Accuracy value</returns>
+	/// <returns>Tuple containing accuracy, lists of misclassified labels and indexes</returns>
 	public (double, List<int>, List<int>) Accuracy( Matrix<double> x, Matrix<double> t )
 	{
 		var y = Predict( x );
@@ -172,14 +161,26 @@ public class MultiLayerNet
 			int tIndex = t.ColumnCount == 1 ? ( int )t[ i, 0 ] : t.Row( i ).MaximumIndex();
 
 			if( yPred == tIndex ) correct++;  // count correct predictions
-			else // store misclassified sample information 
+			else						// store misclassified sample information 
 			{
 				errors.Add( yPred );  // store predicted label 
 				indexes.Add( i );     // store image index 
 			}		
 		}
 
-		return (( double )correct / batchSize, errors, indexes);
+		return (( double )correct/batchSize, errors, indexes);
+	}
+
+	/// <summary>
+	/// Perform a forward pass through the network to compute the output predictions for the given input data.
+	/// </summary>
+	/// <param name="x">Input data matrix</param>
+	/// <returns>Output predictions matrix</returns>
+	Matrix<double> Predict( Matrix<double> x )
+	{
+		this.Layers.ForEach( l => x = l.Forward( x ) );
+
+		return x;
 	}
 
 	/// <summary>

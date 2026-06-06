@@ -68,15 +68,15 @@ public class Parser( int? outputs = null )
 	/// </summary>
 	/// <param name="data">The input data array.</param>
 	/// <returns>An enumerable of normalized values.</returns>
-	static IEnumerable<double> NormalizeM( double[] data )
-	{
-		const double DELTA = 1e-8; // small value to prevent division by zero
-		double mean = data.Sum() / data.Length; // mean
-		double variance = data.Sum( d => ( d - mean ) * ( d - mean ) ) / data.Length; // variance
-		double stdDev = Math.Sqrt( variance ); // standard deviation
+	//static IEnumerable<double> NormalizeM( double[] data )
+	//{
+	//	const double DELTA = 1e-8; // small value to prevent division by zero
+	//	double mean = data.Sum() / data.Length; // mean
+	//	double variance = data.Sum( d => ( d - mean ) * ( d - mean ) ) / data.Length; // variance
+	//	double stdDev = Math.Sqrt( variance ); // standard deviation
 
-		return data.Select( d => ( d - mean ) / (stdDev + DELTA) ); // normalize
-	}
+	//	return data.Select( d => ( d - mean ) / (stdDev + DELTA) ); // normalize
+	//}
 
 
 	/// <summary>

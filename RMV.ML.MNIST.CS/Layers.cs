@@ -248,301 +248,301 @@ public class SoftmaxWithLoss
 }
 
 
-/// <summary>
-/// Randomly sets a fraction of input units to zero during training to prevent overfitting. 
-/// During inference, scales the output by (1 - dropoutRatio) to maintain expected values.
-/// </summary>
-/// <param name="ratio">dropout ratio</param>
-public class Dropout( double ratio = 0.5 ) : ILayer
-{
-	Matrix<double>? mask;
+///// <summary>
+///// Randomly sets a fraction of input units to zero during training to prevent overfitting. 
+///// During inference, scales the output by (1 - dropoutRatio) to maintain expected values.
+///// </summary>
+///// <param name="ratio">dropout ratio</param>
+//public class Dropout( double ratio = 0.5 ) : ILayer
+//{
+//	Matrix<double>? mask;
 
-	public bool TrainFlag { get; set; } = true;
+//	public bool TrainFlag { get; set; } = true;
 
-	public Matrix<double> Forward( Matrix<double> x )
-	{
-		if( TrainFlag )
-		{
-			this.mask = x.Map( _ => Random.Shared.NextDouble() > ratio ? 1.0 : 0.0 );
+//	public Matrix<double> Forward( Matrix<double> x )
+//	{
+//		if( TrainFlag )
+//		{
+//			this.mask = x.Map( _ => Random.Shared.NextDouble() > ratio ? 1.0 : 0.0 );
 
-			return x.PointwiseMultiply( this.mask );
-		}
+//			return x.PointwiseMultiply( this.mask );
+//		}
 
-		return x.Multiply( 1.0 - ratio );
-	}
+//		return x.Multiply( 1.0 - ratio );
+//	}
 
-	public Matrix<double> Backward( Matrix<double> dout )
-	{
-		if( this.mask is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
+//	public Matrix<double> Backward( Matrix<double> dout )
+//	{
+//		if( this.mask is null ) throw new InvalidOperationException( "Forward must be called before Backward." );
 
-		return dout.PointwiseMultiply( this.mask );
-	}
-}
+//		return dout.PointwiseMultiply( this.mask );
+//	}
+//}
 
 
-/// <summary>
-/// Convolution layer: applies learned filters over 4D input (N, C, H, W) using im2col-based matrix multiplication.
-/// </summary>
-/// <param name="W">Filter weights with shape (FN, C, FH, FW)</param>
-/// <param name="B">Bias vector of length FN</param>
-/// <param name="stride">Convolution stride</param>
-/// <param name="pad">Zero-padding size</param>
-public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int pad = 0 )
-{
-	public double[,,,]? dW { get; set; }
-	public Vector<double>? dB { get; set; }
+///// <summary>
+///// Convolution layer: applies learned filters over 4D input (N, C, H, W) using im2col-based matrix multiplication.
+///// </summary>
+///// <param name="W">Filter weights with shape (FN, C, FH, FW)</param>
+///// <param name="B">Bias vector of length FN</param>
+///// <param name="stride">Convolution stride</param>
+///// <param name="pad">Zero-padding size</param>
+//public class Convolution( double[,,,] W, Vector<double> B, int stride = 1, int pad = 0 )
+//{
+//	public double[,,,]? dW { get; set; }
+//	public Vector<double>? dB { get; set; }
 
-	double[,,,]? x;
-	Matrix<double>? col;
-	Matrix<double>? colW;
+//	double[,,,]? x;
+//	Matrix<double>? col;
+//	Matrix<double>? colW;
 
-	/// <summary>
-	/// Forward pass: convolves input with filters and adds bias.
-	/// Input shape: (N, C, H, W). Output shape: (N, FN, outH, outW).
-	/// </summary>
-	public double[,,,] Forward( double[,,,] input )
-	{
-		int FN = W.GetLength( 0 ); // number of filters
-		int C = W.GetLength( 1 );  // channels
-		int FH = W.GetLength( 2 ); // filter height
-		int FW = W.GetLength( 3 ); // filter width
+//	/// <summary>
+//	/// Forward pass: convolves input with filters and adds bias.
+//	/// Input shape: (N, C, H, W). Output shape: (N, FN, outH, outW).
+//	/// </summary>
+//	public double[,,,] Forward( double[,,,] input )
+//	{
+//		int FN = W.GetLength( 0 ); // number of filters
+//		int C = W.GetLength( 1 );  // channels
+//		int FH = W.GetLength( 2 ); // filter height
+//		int FW = W.GetLength( 3 ); // filter width
 
-		int N = input.GetLength( 0 );   // batch size
-		int H = input.GetLength( 2 );   // input height
-		int inW = input.GetLength( 3 ); // input width
+//		int N = input.GetLength( 0 );   // batch size
+//		int H = input.GetLength( 2 );   // input height
+//		int inW = input.GetLength( 3 ); // input width
 
-		int outH = 1 + ( H + 2 * pad - FH ) / stride;   // output height based on input height, filter height, padding, and stride
-		int outW = 1 + ( inW + 2 * pad - FW ) / stride; // output width based on input width, filter width, padding, and stride
+//		int outH = 1 + ( H + 2 * pad - FH ) / stride;   // output height based on input height, filter height, padding, and stride
+//		int outW = 1 + ( inW + 2 * pad - FW ) / stride; // output width based on input width, filter width, padding, and stride
 
-		this.col = ConvUtils.Im2Col( input, FH, FW, stride, pad ); // col shape: (N*outH*outW, C*FH*FW)
+//		this.col = ConvUtils.Im2Col( input, FH, FW, stride, pad ); // col shape: (N*outH*outW, C*FH*FW)
 
-		// Reshape W from (FN, C, FH, FW) to (C*FH*FW, FN) — column-major filter matrix
-		this.colW = Matrix<double>.Build.Dense( C * FH * FW, FN );
-		for( int fn = 0; fn < FN; fn++ )
-		{
-			int idx = 0;
-			for( int c = 0; c < C; c++ )
-				for( int fh = 0; fh < FH; fh++ )
-					for( int fw = 0; fw < FW; fw++ )
-						this.colW[ idx++, fn ] = W[ fn, c, fh, fw ];
-		}
+//		// Reshape W from (FN, C, FH, FW) to (C*FH*FW, FN) — column-major filter matrix
+//		this.colW = Matrix<double>.Build.Dense( C * FH * FW, FN );
+//		for( int fn = 0; fn < FN; fn++ )
+//		{
+//			int idx = 0;
+//			for( int c = 0; c < C; c++ )
+//				for( int fh = 0; fh < FH; fh++ )
+//					for( int fw = 0; fw < FW; fw++ )
+//						this.colW[ idx++, fn ] = W[ fn, c, fh, fw ];
+//		}
 
-		var outMatrix = this.col.Multiply( this.colW ); // out = col * colW + b, result shape: (N*outH*outW, FN)
+//		var outMatrix = this.col.Multiply( this.colW ); // out = col * colW + b, result shape: (N*outH*outW, FN)
 
-		for( int i = 0; i < outMatrix.RowCount; i++ ) // Add bias B to each row of the output matrix
-		{
-			var row = outMatrix.Row( i );
-			row.Add( B, row );
-			outMatrix.SetRow( i, row );
-		}
+//		for( int i = 0; i < outMatrix.RowCount; i++ ) // Add bias B to each row of the output matrix
+//		{
+//			var row = outMatrix.Row( i );
+//			row.Add( B, row );
+//			outMatrix.SetRow( i, row );
+//		}
 
-		// Reshape (N*outH*outW, FN) → (N, outH, outW, FN) → transpose to (N, FN, outH, outW)
-		var result = new double[ N, FN, outH, outW ];
-		int r = 0;
-		for( int n = 0; n < N; n++ )
-			for( int oh = 0; oh < outH; oh++ )
-				for( int ow = 0; ow < outW; ow++ )
-				{
-					for( int fn = 0; fn < FN; fn++ ) result[ n, fn, oh, ow ] = outMatrix[ r, fn ];
-					r++;
-				}
+//		// Reshape (N*outH*outW, FN) → (N, outH, outW, FN) → transpose to (N, FN, outH, outW)
+//		var result = new double[ N, FN, outH, outW ];
+//		int r = 0;
+//		for( int n = 0; n < N; n++ )
+//			for( int oh = 0; oh < outH; oh++ )
+//				for( int ow = 0; ow < outW; ow++ )
+//				{
+//					for( int fn = 0; fn < FN; fn++ ) result[ n, fn, oh, ow ] = outMatrix[ r, fn ];
+//					r++;
+//				}
 
-		this.x = input;
+//		this.x = input;
 
-		return result;
-	}
+//		return result;
+//	}
 
-	/// <summary>
-	/// Backward pass: computes gradients for filters (dW), biases (dB), and input (dx).
-	/// </summary>
-	public double[,,,] Backward( double[,,,] dout )
-	{
-		if( this.x is null || this.col is null || this.colW is null )
-			throw new InvalidOperationException( "Forward must be called before Backward." );
+//	/// <summary>
+//	/// Backward pass: computes gradients for filters (dW), biases (dB), and input (dx).
+//	/// </summary>
+//	public double[,,,] Backward( double[,,,] dout )
+//	{
+//		if( this.x is null || this.col is null || this.colW is null )
+//			throw new InvalidOperationException( "Forward must be called before Backward." );
 
-		int FN = W.GetLength( 0 );
-		int C = W.GetLength( 1 );
-		int FH = W.GetLength( 2 );
-		int FW = W.GetLength( 3 );
+//		int FN = W.GetLength( 0 );
+//		int C = W.GetLength( 1 );
+//		int FH = W.GetLength( 2 );
+//		int FW = W.GetLength( 3 );
 
-		int N = dout.GetLength( 0 );
-		int outH = dout.GetLength( 2 );
-		int outW = dout.GetLength( 3 );
+//		int N = dout.GetLength( 0 );
+//		int outH = dout.GetLength( 2 );
+//		int outW = dout.GetLength( 3 );
 
-		// Transpose dout from (N, FN, outH, outW) → reshape to (N*outH*outW, FN)
-		var doutMatrix = Matrix<double>.Build.Dense( N * outH * outW, FN );
-		int r = 0;
-		for( int n = 0; n < N; n++ )
-			for( int oh = 0; oh < outH; oh++ )
-				for( int ow = 0; ow < outW; ow++ )
-				{
-					for( int fn = 0; fn < FN; fn++ ) doutMatrix[ r, fn ] = dout[ n, fn, oh, ow ];
-					r++;
-				}
+//		// Transpose dout from (N, FN, outH, outW) → reshape to (N*outH*outW, FN)
+//		var doutMatrix = Matrix<double>.Build.Dense( N * outH * outW, FN );
+//		int r = 0;
+//		for( int n = 0; n < N; n++ )
+//			for( int oh = 0; oh < outH; oh++ )
+//				for( int ow = 0; ow < outW; ow++ )
+//				{
+//					for( int fn = 0; fn < FN; fn++ ) doutMatrix[ r, fn ] = dout[ n, fn, oh, ow ];
+//					r++;
+//				}
 
-		this.dB = doutMatrix.ColumnSums(); // dB = sum of dout along axis 0
+//		this.dB = doutMatrix.ColumnSums(); // dB = sum of dout along axis 0
 
-		var dWMatrix = this.col.TransposeThisAndMultiply( doutMatrix ); // dW = col^T * dout, shape: (C*FH*FW, FN)
+//		var dWMatrix = this.col.TransposeThisAndMultiply( doutMatrix ); // dW = col^T * dout, shape: (C*FH*FW, FN)
 
-		this.dW = new double[ FN, C, FH, FW ]; // Reshape dW from (C*FH*FW, FN) → (FN, C, FH, FW)
-		for( int fn = 0; fn < FN; fn++ )
-		{
-			int idx = 0;
-			for( int c = 0; c < C; c++ )
-				for( int fh = 0; fh < FH; fh++ )
-					for( int fw = 0; fw < FW; fw++ )
-						this.dW[ fn, c, fh, fw ] = dWMatrix[ idx++, fn ];
-		}
+//		this.dW = new double[ FN, C, FH, FW ]; // Reshape dW from (C*FH*FW, FN) → (FN, C, FH, FW)
+//		for( int fn = 0; fn < FN; fn++ )
+//		{
+//			int idx = 0;
+//			for( int c = 0; c < C; c++ )
+//				for( int fh = 0; fh < FH; fh++ )
+//					for( int fw = 0; fw < FW; fw++ )
+//						this.dW[ fn, c, fh, fw ] = dWMatrix[ idx++, fn ];
+//		}
 
-		var dcol = doutMatrix.Multiply( this.colW.Transpose() ); // dcol = dout * colW^T
+//		var dcol = doutMatrix.Multiply( this.colW.Transpose() ); // dcol = dout * colW^T
 
-		int xN = this.x.GetLength( 0 );
-		int xC = this.x.GetLength( 1 );
-		int xH = this.x.GetLength( 2 );
-		int xW = this.x.GetLength( 3 );
+//		int xN = this.x.GetLength( 0 );
+//		int xC = this.x.GetLength( 1 );
+//		int xH = this.x.GetLength( 2 );
+//		int xW = this.x.GetLength( 3 );
 
-		return ConvUtils.Col2Im( dcol, xN, xC, xH, xW, FH, FW, stride, pad );
-	}
-}
+//		return ConvUtils.Col2Im( dcol, xN, xC, xH, xW, FH, FW, stride, pad );
+//	}
+//}
 
-	/// <summary>
-	/// Max pooling layer: downsamples 4D input (N, C, H, W) by taking the maximum value in each pooling window.
-	/// </summary>
-	/// <param name="poolH">Pooling window height</param>
-	/// <param name="poolW">Pooling window width</param>
-	/// <param name="stride">Pooling stride</param>
-	/// <param name="pad">Zero-padding size</param>
-	public class Pooling( int poolH, int poolW, int stride = 2, int pad = 0 )
-{
-	double[,,,]? x;
-	int[]? argMax;
+//	/// <summary>
+//	/// Max pooling layer: downsamples 4D input (N, C, H, W) by taking the maximum value in each pooling window.
+//	/// </summary>
+//	/// <param name="poolH">Pooling window height</param>
+//	/// <param name="poolW">Pooling window width</param>
+//	/// <param name="stride">Pooling stride</param>
+//	/// <param name="pad">Zero-padding size</param>
+//	public class Pooling( int poolH, int poolW, int stride = 2, int pad = 0 )
+//{
+//	double[,,,]? x;
+//	int[]? argMax;
 
-	/// <summary>
-	/// Forward pass: applies max pooling over each spatial window.
-	/// Input shape: (N, C, H, W). Output shape: (N, C, outH, outW).
-	/// </summary>
-	public double[,,,] Forward( double[,,,] input )
-	{
-		int N = input.GetLength( 0 );
-		int C = input.GetLength( 1 );
-		int H = input.GetLength( 2 );
-		int W = input.GetLength( 3 );
+//	/// <summary>
+//	/// Forward pass: applies max pooling over each spatial window.
+//	/// Input shape: (N, C, H, W). Output shape: (N, C, outH, outW).
+//	/// </summary>
+//	public double[,,,] Forward( double[,,,] input )
+//	{
+//		int N = input.GetLength( 0 );
+//		int C = input.GetLength( 1 );
+//		int H = input.GetLength( 2 );
+//		int W = input.GetLength( 3 );
 
-		int outH = 1 + ( H - poolH ) / stride;
-		int outW = 1 + ( W - poolW ) / stride;
+//		int outH = 1 + ( H - poolH ) / stride;
+//		int outW = 1 + ( W - poolW ) / stride;
 
-		// im2col then reshape each row to pool_size columns
-		var col = ConvUtils.Im2Col( input, poolH, poolW, stride, pad );
+//		// im2col then reshape each row to pool_size columns
+//		var col = ConvUtils.Im2Col( input, poolH, poolW, stride, pad );
 
-		int poolSize = poolH * poolW;
-		int totalWindows = col.RowCount; // N * outH * outW (per channel, but im2col groups C*poolH*poolW per row)
+//		int poolSize = poolH * poolW;
+//		int totalWindows = col.RowCount; // N * outH * outW (per channel, but im2col groups C*poolH*poolW per row)
 
-		// Reshape col: each row has C * poolSize values → split into C groups of poolSize
-		int totalPatches = N * C * outH * outW;
-		var colReshaped = Matrix<double>.Build.Dense( totalPatches, poolSize );
+//		// Reshape col: each row has C * poolSize values → split into C groups of poolSize
+//		int totalPatches = N * C * outH * outW;
+//		var colReshaped = Matrix<double>.Build.Dense( totalPatches, poolSize );
 
-		// Rearrange from (N*outH*outW, C*poolSize) to (N*C*outH*outW, poolSize)
-		int srcRow = 0;
-		for( int n = 0; n < N; n++ )
-		{
-			for( int oh = 0; oh < outH; oh++ )
-			{
-				for( int ow = 0; ow < outW; ow++ )
-				{
-					for( int c = 0; c < C; c++ )
-					{
-						int dstRow = ( ( n * C + c ) * outH + oh ) * outW + ow;
-						for( int p = 0; p < poolSize; p++ )
-							colReshaped[ dstRow, p ] = col[ srcRow, c * poolSize + p ];
-					}
-					srcRow++;
-				}
-			}
-		}
+//		// Rearrange from (N*outH*outW, C*poolSize) to (N*C*outH*outW, poolSize)
+//		int srcRow = 0;
+//		for( int n = 0; n < N; n++ )
+//		{
+//			for( int oh = 0; oh < outH; oh++ )
+//			{
+//				for( int ow = 0; ow < outW; ow++ )
+//				{
+//					for( int c = 0; c < C; c++ )
+//					{
+//						int dstRow = ( ( n * C + c ) * outH + oh ) * outW + ow;
+//						for( int p = 0; p < poolSize; p++ )
+//							colReshaped[ dstRow, p ] = col[ srcRow, c * poolSize + p ];
+//					}
+//					srcRow++;
+//				}
+//			}
+//		}
 
-		// Compute argmax and max per row
-		this.argMax = new int[ totalPatches ];
-		var result = new double[ N, C, outH, outW ];
+//		// Compute argmax and max per row
+//		this.argMax = new int[ totalPatches ];
+//		var result = new double[ N, C, outH, outW ];
 
-		for( int i = 0; i < totalPatches; i++ )
-		{
-			double max = double.NegativeInfinity;
-			int maxIdx = 0;
-			for( int p = 0; p < poolSize; p++ )
-			{
-				if( colReshaped[ i, p ] > max )
-				{
-					max = colReshaped[ i, p ];
-					maxIdx = p;
-				}
-			}
-			this.argMax[ i ] = maxIdx;
+//		for( int i = 0; i < totalPatches; i++ )
+//		{
+//			double max = double.NegativeInfinity;
+//			int maxIdx = 0;
+//			for( int p = 0; p < poolSize; p++ )
+//			{
+//				if( colReshaped[ i, p ] > max )
+//				{
+//					max = colReshaped[ i, p ];
+//					maxIdx = p;
+//				}
+//			}
+//			this.argMax[ i ] = maxIdx;
 
-			// Map flat index i back to (n, c, oh, ow)
-			int ow2 = i % outW;
-			int oh2 = ( i / outW ) % outH;
-			int c2 = ( i / ( outW * outH ) ) % C;
-			int n2 = i / ( outW * outH * C );
+//			// Map flat index i back to (n, c, oh, ow)
+//			int ow2 = i % outW;
+//			int oh2 = ( i / outW ) % outH;
+//			int c2 = ( i / ( outW * outH ) ) % C;
+//			int n2 = i / ( outW * outH * C );
 
-			result[ n2, c2, oh2, ow2 ] = max;
-		}
+//			result[ n2, c2, oh2, ow2 ] = max;
+//		}
 
-		this.x = input;
+//		this.x = input;
 
-		return result;
-	}
+//		return result;
+//	}
 
-	/// <summary>
-	/// Backward pass: routes gradients back to the positions of the maximum values selected during forward.
-	/// </summary>
-	public double[,,,] Backward( double[,,,] dout )
-	{
-		if( this.x is null || this.argMax is null )
-			throw new InvalidOperationException( "Forward must be called before Backward." );
+//	/// <summary>
+//	/// Backward pass: routes gradients back to the positions of the maximum values selected during forward.
+//	/// </summary>
+//	public double[,,,] Backward( double[,,,] dout )
+//	{
+//		if( this.x is null || this.argMax is null )
+//			throw new InvalidOperationException( "Forward must be called before Backward." );
 
-		int N = dout.GetLength( 0 );
-		int C = dout.GetLength( 1 );
-		int outH = dout.GetLength( 2 );
-		int outW = dout.GetLength( 3 );
+//		int N = dout.GetLength( 0 );
+//		int C = dout.GetLength( 1 );
+//		int outH = dout.GetLength( 2 );
+//		int outW = dout.GetLength( 3 );
 
-		int poolSize = poolH * poolW;
-		int totalPatches = N * C * outH * outW;
+//		int poolSize = poolH * poolW;
+//		int totalPatches = N * C * outH * outW;
 
-		// Build dmax: (totalPatches, poolSize) — sparse, only argMax positions get the gradient
-		var dmax = Matrix<double>.Build.Dense( totalPatches, poolSize );
-		for( int i = 0; i < totalPatches; i++ )
-		{
-			int ow2 = i % outW;
-			int oh2 = ( i / outW ) % outH;
-			int c2 = ( i / ( outW * outH ) ) % C;
-			int n2 = i / ( outW * outH * C );
+//		// Build dmax: (totalPatches, poolSize) — sparse, only argMax positions get the gradient
+//		var dmax = Matrix<double>.Build.Dense( totalPatches, poolSize );
+//		for( int i = 0; i < totalPatches; i++ )
+//		{
+//			int ow2 = i % outW;
+//			int oh2 = ( i / outW ) % outH;
+//			int c2 = ( i / ( outW * outH ) ) % C;
+//			int n2 = i / ( outW * outH * C );
 
-			dmax[ i, this.argMax[ i ] ] = dout[ n2, c2, oh2, ow2 ];
-		}
+//			dmax[ i, this.argMax[ i ] ] = dout[ n2, c2, oh2, ow2 ];
+//		}
 
-		// Rearrange back from (N*C*outH*outW, poolSize) to (N*outH*outW, C*poolSize)
-		var dcol = Matrix<double>.Build.Dense( N * outH * outW, C * poolSize );
-		int dstRow = 0;
-		for( int n = 0; n < N; n++ )
-		{
-			for( int oh = 0; oh < outH; oh++ )
-			{
-				for( int ow = 0; ow < outW; ow++ )
-				{
-					for( int c = 0; c < C; c++ )
-					{
-						int srcRow = ( ( n * C + c ) * outH + oh ) * outW + ow;
-						for( int p = 0; p < poolSize; p++ )
-							dcol[ dstRow, c * poolSize + p ] = dmax[ srcRow, p ];
-					}
-					dstRow++;
-				}
-			}
-		}
+//		// Rearrange back from (N*C*outH*outW, poolSize) to (N*outH*outW, C*poolSize)
+//		var dcol = Matrix<double>.Build.Dense( N * outH * outW, C * poolSize );
+//		int dstRow = 0;
+//		for( int n = 0; n < N; n++ )
+//		{
+//			for( int oh = 0; oh < outH; oh++ )
+//			{
+//				for( int ow = 0; ow < outW; ow++ )
+//				{
+//					for( int c = 0; c < C; c++ )
+//					{
+//						int srcRow = ( ( n * C + c ) * outH + oh ) * outW + ow;
+//						for( int p = 0; p < poolSize; p++ )
+//							dcol[ dstRow, c * poolSize + p ] = dmax[ srcRow, p ];
+//					}
+//					dstRow++;
+//				}
+//			}
+//		}
 
-		int xH = this.x.GetLength( 2 );
-		int xW = this.x.GetLength( 3 );
+//		int xH = this.x.GetLength( 2 );
+//		int xW = this.x.GetLength( 3 );
 
-		return ConvUtils.Col2Im( dcol, N, C, xH, xW, poolH, poolW, stride, pad );
-	}
-}
+//		return ConvUtils.Col2Im( dcol, N, C, xH, xW, poolH, poolW, stride, pad );
+//	}
+//}

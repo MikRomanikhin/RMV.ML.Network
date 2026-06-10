@@ -54,16 +54,19 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<File RelativePath=".\ControllerModule.f90">
 			</File>
-			<File RelativePath=".\DataSetModule.f90"/>
-			<File RelativePath=".\Functions.f90"/>
-			<File RelativePath=".\Layers.f90"/>
+			<File RelativePath=".\DataSetModule.f90">
+			</File>
+			<File RelativePath=".\Functions.f90">
+			</File>
+			<File RelativePath=".\LayersModule.f90">
+			</File>
 			<File RelativePath=".\main.f90">
 			</File>
 			<File RelativePath=".\MultiLayerModule.f90">
 			</File>
-			<File RelativePath=".\Optimizers.f90"/>
-			<File RelativePath=".\ParcerModule.f90">
+			<File RelativePath=".\Optimizers.f90">
 			</File>
+			<File RelativePath=".\ParcerModule.f90"/>
 		</Filter>
 	</Files>
 	<Globals/>

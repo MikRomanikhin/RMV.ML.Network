@@ -83,7 +83,7 @@ contains
                 stagnation = stagnation + 1
                 if( stagnation > this%settings%stagnation ) then
                     print '("Stopping at ", I0, " due to stagnation. Accuracy: ", F8.4, &
-                            &" iteration ", I0, ". Time=", A)', i, max_accuracy, best_iter, format_time(int(elapsed_sec))
+                            " iteration ", I0, ". Time=", A)', i, max_accuracy, best_iter, format_time(int(elapsed_sec))
                     exit
                 end if
                 
